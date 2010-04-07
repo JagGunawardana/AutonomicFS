@@ -60,6 +60,7 @@ int FileManager::ScanFullFileStore(void) {
 	while( it.next() )
 		qDebug() << *it;
 	return(num_files);
+// hello danny
 }
 
 void FileManager::GenerateHash(void) {
