@@ -5,20 +5,27 @@ QT += network \
     sql \
     script \
     scripttools \
-	xml
+    xml
 QT -= gui
 TARGET = ApplicationServer
 CONFIG += console
 CONFIG -= app_bundle
-CONFIG += qt link_pkgconfig
-PKGCONFIG += soprano
+
+# CONFIG += qt link_pkgconfig
+# PKGCONFIG += soprano
 TEMPLATE = app
 LIBS += ../RPC/xml_rpc/libxml_rpc.so \
-	../SharedServices/libSharedServices.so
+    ../SharedServices/libSharedServices.so \
+    /usr/local/lib/libsoprano.so \
+    /usr/local/lib/libsopranoclient.so \
+    /usr/local/lib/libsopranoserver.so \
+    /usr/local/lib/libsopranoindex.so
 SOURCES += main.cpp \
     nsclient.cpp \
     appperiodicprocess.cpp \
-    filemanager.cpp
+    filemanager.cpp \
+    scriptrunner.cpp
 HEADERS += nsclient.h \
     appperiodicprocess.h \
-    filemanager.h
+    filemanager.h \
+    scriptrunner.h

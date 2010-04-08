@@ -1,6 +1,7 @@
 #ifndef FILEMANAGER_H
 #define FILEMANAGER_H
 
+#include <QObject>
 #include <QThread>
 #include <Soprano/Soprano>
 
@@ -15,7 +16,7 @@ public:
 
 protected:
 	void run(void);
-	void GenerateHash(void);
+	QString GenerateHash(QString path_to_file);
 private:
 	QString server_name;
 	QString file_store;

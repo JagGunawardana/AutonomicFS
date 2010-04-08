@@ -23,7 +23,7 @@ private:
 	quint16 port;
 	QString server_name;
 
-	xmlrpc::Client *client;
+	xmlrpc::Client* client;
 };
 
 #endif // NSCLIENT_H

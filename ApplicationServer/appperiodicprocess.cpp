@@ -2,9 +2,11 @@
 #include "appperiodicprocess.h"
 #include <QTimer>
 #include <QDebug>
+#include <QtScript>
 
 #include "nsclient.h"
 #include "../SharedServices/logger.h"
+#include "scriptrunner.h"
 
 AppPeriodicProcess::AppPeriodicProcess(QString our_server_name,
 	QObject* parent) : QThread(parent) {
@@ -41,7 +43,10 @@ void AppPeriodicProcess::PeriodicProcesses(void) {
 	if (ns_client!=NULL)
 		ns_client->Ping();
 	// Report on load
-
+	ScriptRunner script("report_load");
+	int load;
+	script.GetResult(load);
+	qDebug() << "Server load is " << load;
 	// Report on files under management
 
 	// Periodic scripts

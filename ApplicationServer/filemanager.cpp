@@ -1,6 +1,8 @@
 #include "filemanager.h"
 
 #include <QDir>
+#include <QCryptographicHash>
+
 #include "../SharedServices/logger.h"
 #include <QDebug>
 
@@ -48,22 +50,35 @@ int FileManager::ScanFullFileStore(void) {
 	for (int i = 0; i < list.size(); ++i) {
 		QFileInfo fileInfo = list.at(i);
 		QString identifier = QString("uri:filestore:%1").arg(fileInfo.fileName());
+		Logger("Application Server", "../NameServer/server_log").WriteLogLine(QString("Startup"),
+					 QString("Cataloging file:file name($3), server(%1), directory(%2).").arg(server_name).arg(file_store).arg(fileInfo.fileName()));
 		rdfmod->addStatement(QUrl(identifier),
 							 predicate_hasname,
 							 Soprano::LiteralValue(fileInfo.fileName()));
 		rdfmod->addStatement(QUrl(identifier),
 							 predicate_hassize,
 							 Soprano::LiteralValue(fileInfo.size()));
+		rdfmod->addStatement(QUrl(identifier),
+							 predicate_hashash,
+							 Soprano::LiteralValue(GenerateHash(fileInfo.absoluteFilePath())));
 
 	}
 	Soprano::StatementIterator it = rdfmod->listStatements();
 	while( it.next() )
 		qDebug() << *it;
 	return(num_files);
-// hello danny
 }
 
-void FileManager::GenerateHash(void) {
-
-
+QString FileManager::GenerateHash(QString path_to_file) {
+	QCryptographicHash hash(QCryptographicHash::Sha1);
+	QFile file(path_to_file);
+	if (!file.open(QIODevice::ReadOnly)) {
+		qDebug() << "Failed to open file "<<path_to_file;
+	}
+	QByteArray store(file.size()+1, '\0');
+	file.read(store.data(), file.size()+1);
+	hash.addData(store.constData());
+	QByteArray sha1 = hash.result();
+	QString ret = sha1.toHex();
+	return(ret);
 }
