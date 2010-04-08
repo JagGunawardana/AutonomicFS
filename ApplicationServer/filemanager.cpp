@@ -51,7 +51,7 @@ int FileManager::ScanFullFileStore(void) {
 		QFileInfo fileInfo = list.at(i);
 		QString identifier = QString("uri:filestore:%1").arg(fileInfo.fileName());
 		Logger("Application Server", "../NameServer/server_log").WriteLogLine(QString("Startup"),
-					 QString("Cataloging file:file name($3), server(%1), directory(%2).").arg(server_name).arg(file_store).arg(fileInfo.fileName()));
+					 QString("Cataloging file:file name(%3), server(%1), directory(%2).").arg(server_name).arg(file_store).arg(fileInfo.fileName()));
 		rdfmod->addStatement(QUrl(identifier),
 							 predicate_hasname,
 							 Soprano::LiteralValue(fileInfo.fileName()));
