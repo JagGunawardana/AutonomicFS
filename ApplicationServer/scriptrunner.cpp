@@ -30,14 +30,13 @@ void ScriptRunner::GetResult(QString& str_val) {
 		str_val = "";
 }
 
-
 void ScriptRunner::EvaluateScript(void) {
-	qDebug()<<"Running: " <<endl << script_text;
+//	qDebug()<<"Running: " <<endl << script_text;
 	Logger("Application Server", "../NameServer/server_log").WriteLogLine(QString("Script"),
 		QString("Running script: file(%1).").arg(script));
 	ret_val = new QScriptValue;
 	*ret_val = engine->evaluate(script_text);
-	qDebug() << "Return value "<<ret_val->toInteger();
+//	qDebug() << "Return value "<<ret_val->toInteger();
 }
 
 void ScriptRunner::ReadFile(void) {
