@@ -13,6 +13,7 @@ AppPeriodicProcess::AppPeriodicProcess(QString our_server_name,
 	server_name = our_server_name;
 	ns_client = NULL;
 	periodic_timer = NULL;
+	tick_count = 0;
 }
 
 AppPeriodicProcess::~AppPeriodicProcess() {
@@ -28,25 +29,43 @@ void AppPeriodicProcess::run(void) {
 
 void AppPeriodicProcess::SetupPeriodicProcesses(void) {
 	// Register our presense with the name server
-		QString address = "127.0.0.1";
-		ns_client = new NSClient(address, server_name);
-		ns_client->RegisterWithNameServer(100 /* !!! application port */, "NEUTRAL");
+	QString address = "127.0.0.1";
+	ns_client = new NSClient(address, server_name);
+	ns_client->RegisterWithNameServer(100 /* !!! application port */, "NEUTRAL");
 
 	// Setup our periodic timer
 	periodic_timer = new QTimer(this);
 	connect(periodic_timer, SIGNAL(timeout()), this, SLOT(PeriodicProcesses()));
-	periodic_timer->start(500); // half a second should be enough for our purposes
+	int tick = QSettings("../NameServer/nameserver_config", QSettings::IniFormat).value("periodic_tick", 0).toInt();
+	periodic_timer->start(tick); // half a second should be enough for our purposes
+}
+
+bool AppPeriodicProcess::TimeFor(QString event_name) {
+	int tick = QSettings("../NameServer/nameserver_config", QSettings::IniFormat).value(event_name, 0).toInt();
+	if (tick_count%tick == 0) {
+		Logger("Application Server", "../NameServer/server_log").WriteLogLine(QString("Periodic_process"),
+				QString("Time to %1, interval %2..").arg(event_name).arg(tick) );
+
+		return(true);
+	}
+	else
+		return(false);
 }
 
 void AppPeriodicProcess::PeriodicProcesses(void) {
-	// Keep alive message to name server
-	if (ns_client!=NULL)
-		ns_client->Ping();
-	// Report on load
-	ScriptRunner script("report_load");
-	int load;
-	script.GetResult(load);
-	qDebug() << "Server load is " << load;
+	tick_count++;
+	if (TimeFor("KeepAlive")) {
+		// Keep alive message to name server
+		if (ns_client!=NULL)
+			ns_client->Ping();
+	}
+	if (TimeFor("ReportLoad")) {
+		// Report on load
+		ScriptRunner script("report_load");
+		int load;
+		script.GetResult(load);
+		qDebug() << "Server load is " << load;
+	}
 	// Report on files under management
 
 	// Periodic scripts

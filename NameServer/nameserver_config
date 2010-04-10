@@ -1,1 +1,5 @@
 port=8085
+periodic_tick=500
+
+KeepAlive=2
+ReportLoad=6

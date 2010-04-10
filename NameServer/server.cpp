@@ -14,7 +14,7 @@ Server::Server( quint16 port, QObject *parent )
 	//register our methods
 	srv->registerMethod( "RegisterAppServer", QVariant::Bool, QVariant::String, QVariant::Int, QVariant::Int, QVariant::String );
 	srv->registerMethod( "Ping", QVariant::Bool, QVariant::Int );
-
+	srv->registerMethod("Service_RequestFile", QVariant::ByteArray, QVariant::String);
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
 		this, SLOT(processRequest( int, QString, QList<xmlrpc::Variant>)));
 
@@ -41,8 +41,24 @@ void Server::processRequest( int requestId, QString methodName,
 		QVariant ret_val = Ping(parameters[0]);
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
+	else if (methodName == "Service_RequestFile") {
+		QVariant ret_val = Service_RequestFile(parameters[0]);
+		srv->sendReturnValue( requestId, ret_val.toByteArray());  // !!!
+	}
 	else
 		qFatal(QString("Name server - bad service name given ("+methodName+").").toAscii());
+}
+
+QVariant Server::Service_RequestFile(QVariant file_name) {
+
+	QFile file(file_name.toString());
+	if (!file.exists()) {
+		qFatal("Cant find Nameserver.");
+	}
+	file.open(QIODevice::ReadOnly);
+	QByteArray stream(file.size(), '\0');
+	stream = file.readAll();
+	return (stream);
 }
 
 QVariant Server::RegisterAppServer(QVariant server_name,

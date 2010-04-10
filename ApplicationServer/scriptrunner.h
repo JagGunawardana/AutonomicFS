@@ -1,6 +1,8 @@
 #ifndef SCRIPTRUNNER_H
 #define SCRIPTRUNNER_H
 
+class ScriptHelper;
+
 class ScriptRunner {
 public:
 	ScriptRunner(QString script_file);
@@ -14,9 +16,11 @@ protected:
 
 private:
 	QString script;
-	QByteArray script_text;
+	QString script_contents;
 	QScriptValue* ret_val;
+	QScriptValue* helper_value;
 	QScriptEngine* engine;
+	ScriptHelper* helper;
 };
 
 #endif // SCRIPTRUNNER_H

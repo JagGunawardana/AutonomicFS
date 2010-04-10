@@ -24,8 +24,10 @@ SOURCES += main.cpp \
     nsclient.cpp \
     appperiodicprocess.cpp \
     filemanager.cpp \
-    scriptrunner.cpp
+    scriptrunner.cpp \
+    scripthelper.cpp
 HEADERS += nsclient.h \
     appperiodicprocess.h \
     filemanager.h \
-    scriptrunner.h
+    scriptrunner.h \
+    scripthelper.h

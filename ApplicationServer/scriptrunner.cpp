@@ -1,9 +1,15 @@
 #include <QtScript>
 #include "scriptrunner.h"
 #include "../SharedServices/logger.h"
+#include "scripthelper.h"
 
 ScriptRunner::ScriptRunner(QString script_file) {
 	engine = new QScriptEngine();
+	helper = new ScriptHelper(engine);
+	helper_value = new QScriptValue;
+	*helper_value = engine->newQObject(helper);
+	engine->globalObject().setProperty("helper", *helper_value);
+
 	ret_val = NULL;
 	script = "scripts/"+script_file;
 	ReadFile();
@@ -12,6 +18,7 @@ ScriptRunner::ScriptRunner(QString script_file) {
 
 ScriptRunner::~ScriptRunner() {
 	delete(engine);
+	delete(helper_value);
 	if (ret_val!=NULL)
 		delete(ret_val);
 }
@@ -31,12 +38,10 @@ void ScriptRunner::GetResult(QString& str_val) {
 }
 
 void ScriptRunner::EvaluateScript(void) {
-//	qDebug()<<"Running: " <<endl << script_text;
 	Logger("Application Server", "../NameServer/server_log").WriteLogLine(QString("Script"),
 		QString("Running script: file(%1).").arg(script));
 	ret_val = new QScriptValue;
-	*ret_val = engine->evaluate(script_text);
-//	qDebug() << "Return value "<<ret_val->toInteger();
+	*ret_val = engine->evaluate(script_contents);
 }
 
 void ScriptRunner::ReadFile(void) {
@@ -45,7 +50,7 @@ void ScriptRunner::ReadFile(void) {
 		qFatal("Script doesn't exist.");
 	}
 	file.open(QIODevice::ReadOnly);
-	script_text.clear();
-	script_text = file.readAll();
+	QTextStream stream(&file);
+	script_contents = stream.readAll();
 	file.close();
 }

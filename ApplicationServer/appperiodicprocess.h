@@ -13,11 +13,12 @@ public:
 
 protected:
 	void run(void);
-
+	bool TimeFor(QString event_name);
 private:
 	QTimer* periodic_timer;
 	QString server_name;
 	NSClient* ns_client;
+	int tick_count;
 
 private slots:
 	void PeriodicProcesses(void);
