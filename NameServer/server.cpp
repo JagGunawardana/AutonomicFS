@@ -6,6 +6,7 @@
 #include <QDebug>
 
 #include "../SharedServices/logger.h"
+#include "servicerequest.h"
 
 Server::Server( quint16 port, QObject *parent )
 	  : QObject( parent ) {
@@ -42,24 +43,14 @@ void Server::processRequest( int requestId, QString methodName,
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
 	else if (methodName == "Service_RequestFile") {
-		QVariant ret_val = Service_RequestFile(parameters[0]);
-		srv->sendReturnValue( requestId, ret_val.toByteArray());  // !!!
+
+		ServiceRequest *request = new ServiceRequest(srv, parameters, requestId);
+		QThreadPool::globalInstance()->start(request);
 	}
 	else
 		qFatal(QString("Name server - bad service name given ("+methodName+").").toAscii());
 }
 
-QVariant Server::Service_RequestFile(QVariant file_name) {
-
-	QFile file(file_name.toString());
-	if (!file.exists()) {
-		qFatal("Cant find Nameserver.");
-	}
-	file.open(QIODevice::ReadOnly);
-	QByteArray stream(file.size(), '\0');
-	stream = file.readAll();
-	return (stream);
-}
 
 QVariant Server::RegisterAppServer(QVariant server_name,
 	QVariant pid, QVariant port_number,
