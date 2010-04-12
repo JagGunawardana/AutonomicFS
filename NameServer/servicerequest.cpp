@@ -1,5 +1,7 @@
 #include "servicerequest.h"
 
+#include <QMutex>
+
 ServiceRequest::ServiceRequest(xmlrpc::Server* srv, QList<xmlrpc::Variant> parameters, int requestId )
 {
 	this->srv = srv;
@@ -7,9 +9,16 @@ ServiceRequest::ServiceRequest(xmlrpc::Server* srv, QList<xmlrpc::Variant> param
 	this->requestId = requestId;
 }
 
+ServiceRequest::~ServiceRequest() {
+	delete(dummy);
+}
+
 
 void ServiceRequest::run() {
+	dummy = new QObject();
+	our_thread = dummy->thread();
 	QVariant ret_val = Service_RequestFile(parameters[0]);
+
 	srv->sendReturnValue( requestId, ret_val.toByteArray());
 }
 

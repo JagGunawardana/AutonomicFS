@@ -43,8 +43,9 @@ void Server::processRequest( int requestId, QString methodName,
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
 	else if (methodName == "Service_RequestFile") {
-
 		ServiceRequest *request = new ServiceRequest(srv, parameters, requestId);
+		request->setAutoDelete(true);
+
 		QThreadPool::globalInstance()->start(request);
 	}
 	else
