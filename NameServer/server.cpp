@@ -43,13 +43,15 @@ void Server::processRequest( int requestId, QString methodName,
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
 	else if (methodName == "Service_RequestFile") {
-		ServiceRequest *request = new ServiceRequest(srv, parameters, requestId);
-		request->setAutoDelete(true);
-
+		ServiceRequest *request = new ServiceRequest(srv, parameters, requestId, ServiceRequest::request_file);
+		request->setAutoDelete(true); // let the pool handle deletion
 		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
 	}
-	else
-		qFatal(QString("Name server - bad service name given ("+methodName+").").toAscii());
+	else {
+		qDebug() << QString("Name server - bad service name given ("+methodName+").");
+		srv->sendReturnValue(requestId, QVariant(true).toBool());
+	}
 }
 
 

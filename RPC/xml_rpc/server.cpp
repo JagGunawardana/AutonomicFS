@@ -10,6 +10,7 @@
 
 #include <QtNetwork>
 #include <QtXml>
+#include <QMutex>
 
 namespace  xmlrpc {
 
@@ -62,6 +63,7 @@ void Server::Private::sendResponse( QTcpSocket *socket, QByteArray data, bool ke
         //qDebug() << "close connection";
         socket->close();
         socket->disconnectFromHost();
+		socket->waitForDisconnected(); // we needed this for the multi-threading !!! ???
     }
 }
 
@@ -201,9 +203,10 @@ void Server::newConnection()
             return;
     
         
-        connect(socket, SIGNAL(disconnected()),
+/*        connect(socket, SIGNAL(disconnected()),
                 socket, SLOT(deleteLater()));
-    
+				We'll handle socket deletion - Jag
+ */
         new IncomingConnection(this, socket);
     }
 }
@@ -213,10 +216,11 @@ void Server::newConnection()
  *  or return xmlrpc response back to \a socket */
 void Server::processRequest( QByteArray request, QTcpSocket *socket )
 {
+	// Just in case - make this a simple critical section
+	critical_section.lock();
     d->lastRequestId++;
-
-
-    int requestId = d->lastRequestId;
+	critical_section.unlock();
+	int requestId = d->lastRequestId;
     d->processingRequests[ requestId ] = socket;
 
 
@@ -310,13 +314,30 @@ void Server::processRequest( QByteArray request, QTcpSocket *socket )
     emit incomingRequest( requestId, methodName, parameters );
 }
 
+// My hacks (Jag)
+
+QObject* Server::GetSocketParent(int requestId) {
+	Q_ASSERT( d->processingRequests.contains( requestId ) );
+	return((d->processingRequests.value(requestId))->parent());
+}
+
+void Server::SetSocketParent(QObject *parent, int requestId) {
+	Q_ASSERT( d->processingRequests.contains( requestId ) );
+	(d->processingRequests.value(requestId))->setParent(parent);
+}
+
+void Server::TransferSocketThread(QThread *new_thread, int requestId) {
+	Q_ASSERT( d->processingRequests.contains( requestId ) );
+	(d->processingRequests.value(requestId))->moveToThread(new_thread);
+}
+
 /**
  * Send method return value back to client.
  * @param requestId id of the request, provided by
  *                  incomingRequest() signal
  * @param value to be returned to client
  */
-void Server::sendReturnValue( int requestId, const xmlrpc::Variant& value )
+QTcpSocket* Server::sendReturnValue( int requestId, const xmlrpc::Variant& value )
 {
     Q_ASSERT( d->processingRequests.contains( requestId ) );
 
@@ -331,7 +352,7 @@ void Server::sendReturnValue( int requestId, const xmlrpc::Variant& value )
     QTcpSocket *socket =  d->processingRequests.take(requestId);
     d->sendResponse( socket, response.composeResponse(), d->keepAliveRequests.contains(requestId) );
     d->keepAliveRequests.remove( requestId );
-    
+	return(socket);
 }
 
 /**

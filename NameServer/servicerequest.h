@@ -13,15 +13,22 @@ private:
 	xmlrpc::Server *srv;
 	QList<xmlrpc::Variant> parameters;
 	int requestId;
-	QMutex* sync_mutex[2];
+	QSemaphore sync_sem;
 	QThread* our_thread;
-	QObject* dummy;
+	QThread* master_thread;
+	QObject* socket_parent;
 public:
 	void run();
+	enum RequestType {request_file} our_request;
 	QThread* GetOurThread(void) {return(our_thread);}
-	ServiceRequest(xmlrpc::Server* srv, QList<xmlrpc::Variant> parameters, int requestId);
+	ServiceRequest(xmlrpc::Server* srv,
+				   QList<xmlrpc::Variant> parameters,
+				   int requestId,
+				   ServiceRequest::RequestType request);
 	~ServiceRequest();
 	QVariant Service_RequestFile(QVariant file_name);
+	void TransferSocket(void);
+	void TransferBackSocket(QTcpSocket* socket);
 };
 
 #endif // SERVICEREQUEST_H

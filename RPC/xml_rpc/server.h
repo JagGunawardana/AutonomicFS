@@ -37,12 +37,16 @@ public:
                          QVariant::Type parameter1Type, QVariant::Type parameter2Type, QVariant::Type parameter3Type );
     void registerMethod( QString methodName, QVariant::Type returnType, 
                          QVariant::Type parameter1Type, QVariant::Type parameter2Type, QVariant::Type parameter3Type, QVariant::Type parameter4Type );
-
+// Added methods (Jag)
+	QObject* GetSocketParent(int requestId);
+	void SetSocketParent(QObject* parent, int requestId);
+	void TransferSocketThread(QThread* new_thread, int requestId);
 signals:
     void incomingRequest( int requestId, QString methodName, QList<xmlrpc::Variant> parameters );
 
+
 public slots:
-    void sendReturnValue( int requestId, const xmlrpc::Variant& value );
+	QTcpSocket* sendReturnValue( int requestId, const xmlrpc::Variant& value );
     void sendFault( int requestId, int faultCode, QString faultMessage );
 
 
@@ -53,6 +57,7 @@ protected slots:
 private:
 	class Private;
 	Private *d;
+	QMutex critical_section;
 }; 
 
 } // namespace
