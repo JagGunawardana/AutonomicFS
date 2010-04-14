@@ -19,7 +19,7 @@ predicate_hashash(QUrl("uri:predicate:has_hash"))
 	this->max_size = max_size;
 // Setup our file store
 	rdfmod = Soprano::createModel();
-	file_store = file_store + (file_store.right(1)=="/" ? "" : "/");
+	file_store = file_store + (file_store.right(1)=="/" ? "" : "/"); // Add a trailing slash to the file store
 	our_dir = new QDir(file_store);
 	if (!our_dir->exists())
 		qFatal("Fatal error, failed to find directory.");
@@ -43,7 +43,7 @@ int FileManager::ScanFullFileStore(void) {
 						 QString("Scanning directory for content: server(%1), directory(%2).").arg(server_name).arg(file_store));
 		qFatal("Failed to located directory ... aborting");
 	}
-	// !!! Should we clear our the model here ???
+	rdfmod->removeAllStatements(); // clear the model
 	our_dir->setFilter(QDir::Files | QDir::NoDotAndDotDot | QDir::NoSymLinks);
 	our_dir->setSorting(QDir::Size | QDir::Reversed);
 	QFileInfoList list = our_dir->entryInfoList();
@@ -70,6 +70,7 @@ int FileManager::ScanFullFileStore(void) {
 }
 
 QString FileManager::GenerateHash(QString path_to_file) {
+	// Generate the SHA1 hash of a file as a string.
 	QCryptographicHash hash(QCryptographicHash::Sha1);
 	QFile file(path_to_file);
 	if (!file.open(QIODevice::ReadOnly)) {
