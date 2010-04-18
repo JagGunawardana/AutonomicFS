@@ -97,20 +97,28 @@ QString FileManager::GenerateHash(QString path_to_file) {
 }
 
 QVariant FileManager::CheckServeFileByName(QString file_name) {
+	QList<QVariant> ret_val;
 	if (CheckFileInStoreByName(file_name)) {
 		QFile file(our_dir->absoluteFilePath(file_name));
 		if (!file.exists()) {
 			Logger("Application Server", "../NameServer/server_log").WriteLogLine(QString("Service"),
 						 QString("Error serving file (doesn't exist):file name(%3), server(%1), directory(%2).").arg(server_name).arg(file_store).arg(file_name));
-			return(QVariant(""));
+			ret_val.append(false);
+			ret_val.append("");
 		}
-		file.open(QIODevice::ReadOnly);
-		QByteArray stream(file.size(), '\0');
-		stream = file.readAll();
-		return (stream);
+		else {
+			file.open(QIODevice::ReadOnly);
+			QByteArray stream(file.size(), '\0');
+			stream = file.readAll();
+			ret_val.append(QVariant(true));
+			ret_val.append(stream);
+		}
 	}
-	else
-		return(QVariant(""));
+	else {
+		ret_val.append(false);
+		ret_val.append("");
+	}
+	return(ret_val);
 }
 
 bool FileManager::CheckFileInStoreByName(QString file_name) {

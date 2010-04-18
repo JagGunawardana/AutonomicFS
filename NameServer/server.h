@@ -14,6 +14,7 @@ class Server : public QObject {
 public:
 	Server( quint16 port, QObject *parent = 0 );
 	~Server();
+	QVariantMap GetActiveApplicationServers(void);
 private:
 	xmlrpc::Server* srv;
 	QMap<int, ApplicationServer*> appserver_map;

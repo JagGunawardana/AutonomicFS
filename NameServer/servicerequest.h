@@ -6,6 +6,7 @@
 
 class QMutex;
 class QThread;
+class Server;
 
 class ServiceRequest : public QRunnable
 {
@@ -17,15 +18,16 @@ private:
 	QThread* our_thread;
 	QThread* master_thread;
 	QObject* socket_parent;
+	Server* server;
 public:
 	void run();
 	enum RequestType {request_file} our_request;
 	QThread* GetOurThread(void) {return(our_thread);}
 	ServiceRequest(xmlrpc::Server* srv,
+				   Server* server,
 				   QList<xmlrpc::Variant> parameters,
 				   int requestId,
-				   ServiceRequest::RequestType request,
-				   QList<int> active_ports);
+				   ServiceRequest::RequestType request);
 	~ServiceRequest();
 	QVariant Service_RequestFile(QVariant file_name);
 	void TransferSocket(void);

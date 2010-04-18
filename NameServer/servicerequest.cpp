@@ -3,15 +3,19 @@
 #include <QSemaphore>
 #include <QTcpSocket>
 
+#include "../SharedServices/profilemgr.h"
+#include "nsscriptrunner.h"
+
 ServiceRequest::ServiceRequest(xmlrpc::Server* srv,
+							   Server* server,
 							   QList<xmlrpc::Variant> parameters,
 							   int requestId,
-							   ServiceRequest::RequestType request_type,
-							   QList<int> active_ports) : sync_sem(0)
+							   ServiceRequest::RequestType request_type) : sync_sem(0)
 {
 	this->srv = srv;
 	this->parameters = parameters;
 	this->requestId = requestId;
+	this->server = server;
 	master_thread = QThread::currentThread(); // used to switch back socket ownership at end
 	socket_parent = srv->GetSocketParent(requestId);
 	our_request = request_type;
@@ -51,7 +55,12 @@ void ServiceRequest::run(void) {
 }
 
 QVariant ServiceRequest::Service_RequestFile(QVariant file_name) {
-	QVariant file;
-
+	// Find the file and return it back
+	QString file;
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_name")] = file_name;
+	NSScriptRunner script(pro->GetRelativeScriptPath("read_file"), server, params);
+	script.GetResult(file);
 	return(file);
 }

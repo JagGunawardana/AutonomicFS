@@ -30,10 +30,9 @@ NSClient::~NSClient() {
 }
 
 void NSClient::RegisterWithNameServer(int application_port, QString server_type) {
-	Q_UNUSED(application_port);
 	int our_pid = QCoreApplication::applicationPid();
 	client->request( "RegisterAppServer",
-		server_name, our_pid, port, server_type);
+		server_name, our_pid, application_port, server_type);
 	Logger("Application Server NSClient",
 		   "../NameServer/server_log").WriteLogLine(QString("Registration"),
 			QString("Registered successfully with name server: application name (%1), port (%2)").arg(server_name).arg(port));

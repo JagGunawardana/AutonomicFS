@@ -45,9 +45,8 @@ void Server::processRequest( int requestId, QString methodName,
 	}
 	else if (methodName == "Service_RequestFile") {
 		QList<int> port_list = GetActiveApplicationServerPorts();
-		ServiceRequest *request = new ServiceRequest(srv, parameters,
-			requestId, ServiceRequest::request_file,
-			port_list);
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_file);
 		request->setAutoDelete(true); // let the pool handle deletion
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
@@ -56,15 +55,6 @@ void Server::processRequest( int requestId, QString methodName,
 		qDebug() << QString("Name server - bad service name given ("+methodName+").");
 		srv->sendReturnValue(requestId, QVariant(true).toBool());
 	}
-}
-
-QList<int> Server::GetActiveApplicationServerPorts(void) {
-	QList<int> list;
-	foreach(ApplicationServer* app, appserver_map) {
-		if (app->GetKeepAliveGap() < tick*keep_alive_gap*2)
-			list.append(app->GetPortNumber());
-	}
-	return(list);
 }
 
 QVariant Server::RegisterAppServer(QVariant server_name,
@@ -90,4 +80,29 @@ QVariant Server::Ping(QVariant pid) {
 	Logger("Name server", "server_log").WriteLogLine(QString("KeepAlive"),
 			QString("Keep alive message from pid(%1), name(%2), keep alive gap(%3).").arg(app->GetPid()).arg(app->GetServerName()).arg(gap));
 	return(QVariant(true));
+}
+
+// Script helper stuff
+
+QList<int> Server::GetActiveApplicationServerPorts(void) {
+	QList<int> list;
+	foreach(ApplicationServer* app, appserver_map) {
+		if (app->GetKeepAliveGap() < tick*keep_alive_gap*2)
+			list.append(app->GetPortNumber());
+	}
+	return(list);
+}
+
+QVariantMap Server::GetActiveApplicationServers(void) {
+	QVariantMap our_map;
+	foreach(ApplicationServer* app, appserver_map) {
+		if (app->GetKeepAliveGap() < tick*keep_alive_gap*2) {
+			QVariantMap attrs;
+			attrs[QString("port")]=app->GetPortNumber();
+			attrs[QString("name")]=app->GetServerName();
+			attrs[QString("gap")]=app->GetKeepAliveGap();
+			our_map[QString(app->GetPid())] = attrs;
+		}
+	}
+	return(our_map);
 }

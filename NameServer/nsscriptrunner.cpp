@@ -3,15 +3,18 @@
 #include "../SharedServices/logger.h"
 #include "nsscriptrunner.h"
 #include "nsscripthelper.h"
+#include "server.h"
 
-
-NSScriptRunner::NSScriptRunner(QString script_file) {
+NSScriptRunner::NSScriptRunner(QString script_file,
+							   Server* server,
+							   QMap<QString, QVariant> params) {
+	this->server = server;
+	this->params = params;
 	engine = new QScriptEngine();
-	helper = new NSScriptHelper(engine);
+	helper = new NSScriptHelper(engine, server, this->params);
 	helper_value = new QScriptValue;
 	*helper_value = engine->newQObject(helper);
 	engine->globalObject().setProperty("helper", *helper_value);
-
 	ret_val = NULL;
 	script = "scripts/"+script_file;
 	ReadFile();

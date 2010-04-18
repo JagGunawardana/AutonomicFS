@@ -1,6 +1,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include <QDebug>
+
 class Logger {
 private:
 	QString file_name;
