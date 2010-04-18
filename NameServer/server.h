@@ -17,8 +17,12 @@ public:
 private:
 	xmlrpc::Server* srv;
 	QMap<int, ApplicationServer*> appserver_map;
+	int tick;
+	int keep_alive_gap;
+protected:
 	QVariant RegisterAppServer(QVariant server_name, QVariant pid, QVariant port_number, QVariant server_type); // Called by each application server when it starts
 	QVariant Ping(QVariant pid); // Used for keep alive and latency checks
+	QList<int> GetActiveApplicationServerPorts(void);
 private slots:
 	void processRequest( int requestId, QString methodName, QList<xmlrpc::Variant> parameters );
 };

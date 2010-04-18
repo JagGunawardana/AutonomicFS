@@ -1,13 +1,14 @@
-#include "servicerequest.h"
+#include "applicationservicerequest.h"
 
 #include <QSemaphore>
 #include <QTcpSocket>
 
-ServiceRequest::ServiceRequest(xmlrpc::Server* srv,
+#include "filemanager.h"
+
+ApplicationServiceRequest::ApplicationServiceRequest(xmlrpc::Server* srv,
 							   QList<xmlrpc::Variant> parameters,
 							   int requestId,
-							   ServiceRequest::RequestType request_type,
-							   QList<int> active_ports) : sync_sem(0)
+							   ApplicationServiceRequest::RequestType request_type) : sync_sem(0)
 {
 	this->srv = srv;
 	this->parameters = parameters;
@@ -17,10 +18,10 @@ ServiceRequest::ServiceRequest(xmlrpc::Server* srv,
 	our_request = request_type;
 }
 
-ServiceRequest::~ServiceRequest() {
+ApplicationServiceRequest::~ApplicationServiceRequest() {
 }
 
-void ServiceRequest::TransferSocket(void) {
+void ApplicationServiceRequest::TransferSocket(void) {
 	// do the transfer of the socket - this is called by the master thread
 	sync_sem.acquire(10); // wait until the other thread has sent it's QThread
 	srv->SetSocketParent(NULL, requestId);
@@ -28,20 +29,20 @@ void ServiceRequest::TransferSocket(void) {
 	sync_sem.release(20); // allow the other thread to go and do it's thing
 }
 
-void ServiceRequest::TransferBackSocket(QTcpSocket* socket) {
+void ApplicationServiceRequest::TransferBackSocket(QTcpSocket* socket) {
 	// Clean up socket, we're resposible for it's deletion
 	delete(socket);
 }
 
-void ServiceRequest::run(void) {
+void ApplicationServiceRequest::run(void) {
 	// Thread house keeping
 	our_thread = QThread::currentThread();
 	sync_sem.release(10);
 	sync_sem.acquire(20);
 	// Do our action
 	QTcpSocket* socket = NULL;
-	if (our_request == request_file) {
-		QVariant ret_val = Service_RequestFile(parameters[0]);
+	if (our_request == request_FileByName) {
+		QVariant ret_val = Service_RequestFileByName(parameters[0]);
 		socket = srv->sendReturnValue( requestId, ret_val.toByteArray());
 	}
 	// Clean up threads and socket ownership
@@ -50,8 +51,7 @@ void ServiceRequest::run(void) {
 		TransferBackSocket(socket);
 }
 
-QVariant ServiceRequest::Service_RequestFile(QVariant file_name) {
-	QVariant file;
-
-	return(file);
+QVariant ApplicationServiceRequest::Service_RequestFileByName(QVariant file_name) {
+	FileManager* fm = FileManager::GetFileManager();
+	return(fm->CheckServeFileByName(file_name.toString()));
 }

@@ -8,12 +8,13 @@
 #include "../SharedServices/logger.h"
 #include "scriptrunner.h"
 
-AppPeriodicProcess::AppPeriodicProcess(QString our_server_name,
+AppPeriodicProcess::AppPeriodicProcess(QString our_server_name, int server_port,
 	QObject* parent) : QThread(parent) {
 	server_name = our_server_name;
 	ns_client = NULL;
 	periodic_timer = NULL;
 	tick_count = 0;
+	port = server_port;
 }
 
 AppPeriodicProcess::~AppPeriodicProcess() {
@@ -31,7 +32,7 @@ void AppPeriodicProcess::SetupPeriodicProcesses(void) {
 	// Register our presense with the name server
 	QString address = "127.0.0.1";
 	ns_client = new NSClient(address, server_name);
-	ns_client->RegisterWithNameServer(100 /* !!! application port */, "NEUTRAL");
+	ns_client->RegisterWithNameServer(port, "NEUTRAL");
 
 	// Setup our periodic timer
 	periodic_timer = new QTimer(this);

@@ -11,7 +11,8 @@
 Server::Server( quint16 port, QObject *parent )
 	  : QObject( parent ) {
 	srv = new xmlrpc::Server(this);
-
+	tick = QSettings("nameserver_config", QSettings::IniFormat).value("periodic_tick", 0).toInt();
+	keep_alive_gap = QSettings("nameserver_config", QSettings::IniFormat).value("KeepAlive", 0).toInt();
 	//register our methods
 	srv->registerMethod( "RegisterAppServer", QVariant::Bool, QVariant::String, QVariant::Int, QVariant::Int, QVariant::String );
 	srv->registerMethod( "Ping", QVariant::Bool, QVariant::Int );
@@ -43,7 +44,10 @@ void Server::processRequest( int requestId, QString methodName,
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
 	else if (methodName == "Service_RequestFile") {
-		ServiceRequest *request = new ServiceRequest(srv, parameters, requestId, ServiceRequest::request_file);
+		QList<int> port_list = GetActiveApplicationServerPorts();
+		ServiceRequest *request = new ServiceRequest(srv, parameters,
+			requestId, ServiceRequest::request_file,
+			port_list);
 		request->setAutoDelete(true); // let the pool handle deletion
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
@@ -54,6 +58,14 @@ void Server::processRequest( int requestId, QString methodName,
 	}
 }
 
+QList<int> Server::GetActiveApplicationServerPorts(void) {
+	QList<int> list;
+	foreach(ApplicationServer* app, appserver_map) {
+		if (app->GetKeepAliveGap() < tick*keep_alive_gap*2)
+			list.append(app->GetPortNumber());
+	}
+	return(list);
+}
 
 QVariant Server::RegisterAppServer(QVariant server_name,
 	QVariant pid, QVariant port_number,

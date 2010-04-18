@@ -9,7 +9,9 @@ TARGET = SharedServices
 TEMPLATE = lib
 DEFINES += SHAREDSERVICES_LIBRARY
 SOURCES += sharedservices.cpp \
-    logger.cpp
+    logger.cpp \
+    profilemgr.cpp
 HEADERS += sharedservices.h \
     SharedServices_global.h \
-    logger.h
+    logger.h \
+    profilemgr.h

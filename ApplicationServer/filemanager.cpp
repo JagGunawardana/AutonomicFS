@@ -6,6 +6,18 @@
 #include "../SharedServices/logger.h"
 #include <QDebug>
 
+
+FileManager* FileManager::ptr_self = 0;
+
+FileManager* FileManager::GetFileManager(QString server_name, QString file_store, int max_size) {
+	if (!ptr_self) {
+		if (server_name.length() == 0 || file_store.length() == 0)
+			qFatal("File manager hasn't been initialised.");
+		ptr_self = new FileManager(server_name, file_store, max_size);
+	}
+	return(ptr_self);
+}
+
 FileManager::FileManager(QString server_name,
 						 QString file_store,
 						 int max_size) :
@@ -82,4 +94,34 @@ QString FileManager::GenerateHash(QString path_to_file) {
 	QByteArray sha1 = hash.result();
 	QString ret = sha1.toHex();
 	return(ret);
+}
+
+QVariant FileManager::CheckServeFileByName(QString file_name) {
+	if (CheckFileInStoreByName(file_name)) {
+		QFile file(our_dir->absoluteFilePath(file_name));
+		if (!file.exists()) {
+			Logger("Application Server", "../NameServer/server_log").WriteLogLine(QString("Service"),
+						 QString("Error serving file (doesn't exist):file name(%3), server(%1), directory(%2).").arg(server_name).arg(file_store).arg(file_name));
+			return(QVariant(""));
+		}
+		file.open(QIODevice::ReadOnly);
+		QByteArray stream(file.size(), '\0');
+		stream = file.readAll();
+		return (stream);
+	}
+	else
+		return(QVariant(""));
+}
+
+bool FileManager::CheckFileInStoreByName(QString file_name) {
+	// Is this file in our file store, check rdf model
+	Soprano::StatementIterator it = rdfmod->listStatements(Soprano::Node(),
+														   predicate_hasname,
+														   Soprano::LiteralValue(file_name));
+	it.next();
+	Soprano::Statement stmt = *it;
+	if (stmt.isValid() && stmt.object()==Soprano::LiteralValue(file_name))
+		return(true);
+	else
+		return(false);
 }

@@ -8,7 +8,7 @@ class NSClient;
 class AppPeriodicProcess : public QThread {
 	Q_OBJECT
 public:
-	AppPeriodicProcess(QString our_server_name, QObject* parent = NULL);
+	AppPeriodicProcess(QString our_server_name, int server_port, QObject* parent = NULL);
 	~AppPeriodicProcess();
 
 protected:
@@ -19,6 +19,7 @@ private:
 	QString server_name;
 	NSClient* ns_client;
 	int tick_count;
+	int port;
 
 private slots:
 	void PeriodicProcesses(void);

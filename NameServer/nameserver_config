@@ -3,3 +3,6 @@ periodic_tick=500
 
 KeepAlive=2
 ReportLoad=6
+
+AppServerPortMin=8090
+AppServerPortMax=9100

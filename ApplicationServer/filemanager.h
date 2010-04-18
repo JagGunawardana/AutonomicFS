@@ -10,14 +10,18 @@ class QDir;
 class FileManager : public QThread  {
 	Q_OBJECT
 public:
-	FileManager(QString server_name, QString file_store, int max_size = 0);
 	~FileManager();
 	int ScanFullFileStore(void);
-
+	static FileManager* GetFileManager(QString server_name="", QString file_store="", int max_size = 0);
+	// Our access functions
+	QVariant CheckServeFileByName(QString file_name);
 protected:
 	void run(void);
 	QString GenerateHash(QString path_to_file);
+	bool CheckFileInStoreByName(QString file_name);
 private:
+	FileManager(QString server_name, QString file_store, int max_size = 0);
+	static FileManager* ptr_self;
 	QString server_name;
 	QString file_store;
 	int max_size;

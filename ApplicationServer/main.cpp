@@ -7,6 +7,7 @@
 #include "filemanager.h"
 #include "../SharedServices/logger.h"
 #include "appperiodicprocess.h"
+#include "server.h"
 
 int main(int argc, char *argv[]) {
     QCoreApplication a(argc, argv);
@@ -20,16 +21,20 @@ int main(int argc, char *argv[]) {
 	log.WriteLogLine(QString("Registration"),
 		QString("Application server starting on host %1, name %2, file store %3....").arg(QHostInfo::localHostName()).arg(server_name).arg(argv[2]));
 
-// Setup the file management object
+	// Setup a to service requests (from name server, other servers)
+	Server s(0, server_name);
+
+	// Setup the file management object
 	log.WriteLogLine(QString("Startup"),
 					 QString("Starting file management for name %1.").arg(server_name));
-	FileManager* file_mgr = new FileManager(server_name, file_store);
+	FileManager* file_mgr = FileManager::GetFileManager(server_name, file_store);
 	file_mgr->ScanFullFileStore();
-// Setup our periodic processes
+	// Setup our periodic processes
 	log.WriteLogLine(QString("Startup"),
 					 QString("Starting application server periodic processes for name %1.").arg(server_name));
-	AppPeriodicProcess* app = new AppPeriodicProcess(server_name);
-	app->start();
+	AppPeriodicProcess* app = new AppPeriodicProcess(server_name, s.GetPort());
+	app->start(); // Start periodic operations
 
+// Into event loop
     return a.exec();
 }

@@ -24,7 +24,8 @@ public:
 	ServiceRequest(xmlrpc::Server* srv,
 				   QList<xmlrpc::Variant> parameters,
 				   int requestId,
-				   ServiceRequest::RequestType request);
+				   ServiceRequest::RequestType request,
+				   QList<int> active_ports);
 	~ServiceRequest();
 	QVariant Service_RequestFile(QVariant file_name);
 	void TransferSocket(void);
