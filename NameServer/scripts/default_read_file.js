@@ -3,12 +3,16 @@ function ReturnValue() {
     var file_name = helper.GetParameter("file_name");
     var servers = helper.GetActiveAppServers();
     var server = 0;
-    var dummy = "";
+    var file = "";
     for(server in servers) {
-        dummy += servers[server]['name'];
-        dummy += servers[server]['port'];
+        file = helper.TryGetFileByName(server, file_name);
     }
-    return(file_name+dummy);
+    if (file[0] == true) {
+        return("Yes");
+    }
+    else {
+        return("No");
+    }
 //    var this_name = "";
 //    for(var server in servers) [
 //        this_name += servers[server]['name'];
