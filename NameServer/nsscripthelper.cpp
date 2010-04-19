@@ -35,6 +35,21 @@ QVariant NSScriptHelper::TryGetFile(QVariant server, QString file_name) {
 
 }
 
+void NSClient::processReturnValue( int requestId, QVariant value ) {
+	Q_UNUSED(requestId)
+	Q_UNUSED(value)
+}
+
+void NSClient::processFault( int requestId, int errorCode, QString errorString ) {
+	Q_UNUSED( requestId );
+	Logger("Application Server NSClient",
+		   "../NameServer/server_log").WriteLogLine(QString("Error"),
+			QString("Error in communication: Code(%1), String(%2).").arg(errorCode).arg(errorString));
+}
+
+
+
+
 QVariant NSScriptHelper::HasFile(QVariant file_store) {
 	if (file_store.isValid() && file_store.type()==QVariant::List &&
 		file_store.toList()[0] == true) {
