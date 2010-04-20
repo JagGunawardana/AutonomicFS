@@ -55,7 +55,11 @@ QVariant NSScriptHelper::TryGetFileByName(QVariant server, QString file_name) {
 		this, SLOT(processFault( int, int, QString )) );
 	client->request( "Service_FileByName",
 		file_name);
-	sem_sync.acquire(10); // wait for return ???
+	return(QVariant(true));
+}
+
+QVariant NSScriptHelper::WaitReturnResult(void) {
+	sem_sync.acquire(10);
 	return(script_ret_val);
 }
 

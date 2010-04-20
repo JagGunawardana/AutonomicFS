@@ -33,6 +33,7 @@ public slots:
 	QVariant ExtractFile(QVariant file_store);
 	QVariant HasFile(QVariant file_store);
 	QVariant TryGetFileByName(QVariant server, QString file_name);
+	QVariant WaitReturnResult(void);
 };
 
 #endif // NSSCRIPTHELPER_H

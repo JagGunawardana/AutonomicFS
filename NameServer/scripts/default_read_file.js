@@ -6,6 +6,7 @@ function ReturnValue() {
     var file = "";
     for(server in servers) {
         file = helper.TryGetFileByName(server, file_name);
+        file = helper.WaitReturnResult();
     }
     if (file[0] == true) {
         return("Yes");
