@@ -47,6 +47,8 @@ QVariant NSScriptHelper::ExtractFile(QVariant file_store) {
 }
 
 QVariant NSScriptHelper::TryGetFileByName(QVariant server, QString file_name) {
+	qDebug()<<"Into TryGetFileByName";
+
 	client = new xmlrpc::Client(this);
 	client->setHost(QString("127.0.0.1"), server.toMap()["port"].toInt());
 	connect( client, SIGNAL(done( int, QVariant )),
@@ -55,10 +57,12 @@ QVariant NSScriptHelper::TryGetFileByName(QVariant server, QString file_name) {
 		this, SLOT(processFault( int, int, QString )) );
 	client->request( "Service_FileByName",
 		file_name);
+qDebug()<<"Requested file";
 	return(QVariant(true));
 }
 
 QVariant NSScriptHelper::WaitReturnResult(void) {
+qDebug()<<"Waiting for result";
 	sem_sync.acquire(10);
 	return(script_ret_val);
 }

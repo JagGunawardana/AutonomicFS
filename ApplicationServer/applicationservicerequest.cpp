@@ -4,6 +4,9 @@
 #include <QTcpSocket>
 
 #include "filemanager.h"
+#include "../SharedServices/logger.h"
+
+#include "../RPC/xml_rpc/variant.h"
 
 ApplicationServiceRequest::ApplicationServiceRequest(xmlrpc::Server* srv,
 							   QList<xmlrpc::Variant> parameters,
@@ -41,9 +44,12 @@ void ApplicationServiceRequest::run(void) {
 	sync_sem.acquire(20);
 	// Do our action
 	QTcpSocket* socket = NULL;
+	qDebug()<<"Received request";
 	if (our_request == request_FileByName) {
 		QVariant ret_val = Service_RequestFileByName(parameters[0]);
-		socket = srv->sendReturnValue( requestId, ret_val.toByteArray());
+		QList<xmlrpc::Variant> temp_list = ret_val.toList();
+
+		socket = srv->sendReturnValue( requestId, temp_list);
 	}
 	// Clean up threads and socket ownership
 	sync_sem.release(20); // clean up sempahore
@@ -52,6 +58,10 @@ void ApplicationServiceRequest::run(void) {
 }
 
 QVariant ApplicationServiceRequest::Service_RequestFileByName(QVariant file_name) {
+		qDebug()<<"Getting file by name";
+	Logger("Application server",
+		   "../NameServer/server_log").WriteLogLine(QString("Service"),
+													QString("Received request (FileByName) file (%1)....").arg(file_name.toString()));
 	FileManager* fm = FileManager::GetFileManager();
 	return(fm->CheckServeFileByName(file_name.toString()));
 }

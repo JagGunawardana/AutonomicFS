@@ -58,6 +58,7 @@ Server::~Server() {
 
 void Server::processRequest( int requestId, QString methodName,
 							 QList<xmlrpc::Variant> parameters ) {
+	qDebug() << "Received a request ***** "<<methodName;
 	if (methodName == "Service_FileByName") {
 		ApplicationServiceRequest* request = new ApplicationServiceRequest(srv, parameters, requestId,
 			ApplicationServiceRequest::request_FileByName);

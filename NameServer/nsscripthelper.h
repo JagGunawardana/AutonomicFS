@@ -20,9 +20,6 @@ private:
 	Server* server;
 	QMap<QString, QVariant> params;
 	xmlrpc::Client* client;
-	void processReturnValue( int requestId, QVariant value );
-	void processFault( int requestId,
-					   int errorCode, QString errorString );
 	QVariant script_ret_val;
 	QSemaphore sem_sync;
 public slots:
@@ -34,6 +31,9 @@ public slots:
 	QVariant HasFile(QVariant file_store);
 	QVariant TryGetFileByName(QVariant server, QString file_name);
 	QVariant WaitReturnResult(void);
+	void processReturnValue( int requestId, QVariant value );
+	void processFault( int requestId,
+					   int errorCode, QString errorString );
 };
 
 #endif // NSSCRIPTHELPER_H
