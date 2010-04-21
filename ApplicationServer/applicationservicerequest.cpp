@@ -47,8 +47,11 @@ void ApplicationServiceRequest::run(void) {
 	qDebug()<<"Received request";
 	if (our_request == request_FileByName) {
 		QVariant ret_val = Service_RequestFileByName(parameters[0]);
-		QList<xmlrpc::Variant> temp_list = ret_val.toList();
-
+		xmlrpc::Variant v1 = ret_val.toList()[0].toBool();
+		xmlrpc::Variant v2 = ret_val.toList()[1].toByteArray();
+		QList<xmlrpc::Variant> temp_list;
+		temp_list.append(v1);
+		temp_list.append(v2);
 		socket = srv->sendReturnValue( requestId, temp_list);
 	}
 	// Clean up threads and socket ownership

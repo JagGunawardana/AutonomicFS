@@ -37,7 +37,7 @@ public:
     Variant ( const QString & val );
     Variant ( const QStringList & val );
     Variant ( const QDateTime & val );
-    Variant ( const QList<Variant> & val );
+	Variant ( const QList<Variant> & val );
     Variant ( const QMap<QString, Variant> & val );
 
     //! this variable is casted to string XML-RPC type
