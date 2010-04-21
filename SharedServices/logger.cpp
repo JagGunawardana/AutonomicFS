@@ -2,6 +2,8 @@
 #include <QDebug>
 #include <QTime>
 #include <QFile>
+#include <QSettings>
+#include <QStringList>
 #include "logger.h"
 
 Logger::Logger(QString source, QString file) {
@@ -10,6 +12,8 @@ Logger::Logger(QString source, QString file) {
 }
 
 void Logger::WriteLogLine(QString type, QString text) {
+	if (IsIgnored(type))
+		return;
 	QString line = app_source +":"+type+":"+ "("+QTime::currentTime().toString()+"): "+text;
 	qDebug() << line;
 	QFile our_file(file_name);
@@ -20,3 +24,12 @@ void Logger::WriteLogLine(QString type, QString text) {
 	our_file.close();
 }
 
+bool Logger::IsIgnored(QString type) {
+	QString line = QSettings("../NameServer/nameserver_config", QSettings::IniFormat).value("NoLog", "NoSymbols").toString();
+	if (line.split(',').contains(type)) {
+		return(true);
+	}
+	else {
+		return(false);
+	}
+}

@@ -47,12 +47,14 @@ void ApplicationServiceRequest::run(void) {
 	qDebug()<<"Received request";
 	if (our_request == request_FileByName) {
 		QVariant ret_val = Service_RequestFileByName(parameters[0]);
-		xmlrpc::Variant v1 = ret_val.toList()[0].toBool();
-		xmlrpc::Variant v2 = ret_val.toList()[1].toByteArray();
-		QList<xmlrpc::Variant> temp_list;
-		temp_list.append(v1);
-		temp_list.append(v2);
-		socket = srv->sendReturnValue( requestId, temp_list);
+//		xmlrpc::Variant v1 = ret_val.toList()[0].toBool();
+//		xmlrpc::Variant v2 = ret_val.toList()[1].toByteArray();
+//		xmlrpc::Variant v1 = true;
+//		xmlrpc::Variant v2 = 10;
+		QMap<QString, xmlrpc::Variant> temp_list;
+		temp_list["ret_val"]=QVariant(true).toBool();
+		temp_list["file"]=QString("Hello");
+		socket = srv->sendReturnValue( requestId, QString("Hello"));
 	}
 	// Clean up threads and socket ownership
 	sync_sem.release(20); // clean up sempahore

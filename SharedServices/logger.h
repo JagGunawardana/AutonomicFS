@@ -7,6 +7,7 @@ class Logger {
 private:
 	QString file_name;
 	QString app_source;
+	bool IsIgnored(QString type);
 public:
 	Logger(QString source, QString file);
 	void WriteLogLine(QString type, QString text);

@@ -21,16 +21,17 @@ private:
 	QMap<QString, QVariant> params;
 	xmlrpc::Client* client;
 	QVariant script_ret_val;
-	QSemaphore sem_sync;
+	QEventLoop event_loop;
 public slots:
 	int GetValue(int a);
+	QVariant DummyCall(QVariantMap server, QString dummy_string);
 	QVariant GetParameter(QString param) {return params[param];}
 	QVariant GetNumberOfParameters(void) {return params.size();}
 	QVariant GetActiveAppServers(void);
 	QVariant ExtractFile(QVariant file_store);
 	QVariant HasFile(QVariant file_store);
-	QVariant TryGetFileByName(QVariant server, QString file_name);
-	QVariant WaitReturnResult(void);
+	QVariant TryGetFileByName(QVariantMap server, QString file_name);
+
 	void processReturnValue( int requestId, QVariant value );
 	void processFault( int requestId,
 					   int errorCode, QString errorString );

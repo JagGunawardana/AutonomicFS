@@ -4,14 +4,15 @@
 #include "../RPC/xml_rpc/client.h"
 #include "../SharedServices/logger.h"
 
+#include <QDebug>
+
 NSScriptHelper::NSScriptHelper(QObject* parent,
 							   Server* server,
 							   QMap<QString, QVariant> params) :
-QObject(parent), script_ret_val(), sem_sync()
+QObject(parent), script_ret_val(), event_loop(parent)
 {
 	this->server = server;
 	this->params = params;
-	sem_sync.release(0);
 	client = NULL;
 }
 
@@ -46,29 +47,42 @@ QVariant NSScriptHelper::ExtractFile(QVariant file_store) {
 		return(QVariant(""));
 }
 
-QVariant NSScriptHelper::TryGetFileByName(QVariant server, QString file_name) {
+QVariant NSScriptHelper::TryGetFileByName(QVariantMap server, QString file_name) {
 	client = new xmlrpc::Client(this);
-	qDebug()<<"Got server ****** "<<server.toMap()[QString("port")];
-	qDebug()<<"******Requet from for port " <<server.toMap()["port"].toInt();
-	client->setHost(QString("127.0.0.1"), server.toMap()["port"].toInt());
+	int port_number =server[QString("port")].toInt();
+	QString address = "localhost";
+	client->setHost(address, port_number);
 	connect( client, SIGNAL(done( int, QVariant )),
 		this, SLOT(processReturnValue( int, QVariant )) );
 	connect( client, SIGNAL(failed( int, int, QString )),
 		this, SLOT(processFault( int, int, QString )) );
-	client->request( "Service_FileByName",
+	int requestId = client->request( "Service_FileByName",
 		file_name);
-	return(QVariant(true));
-}
-
-QVariant NSScriptHelper::WaitReturnResult(void) {
-	sem_sync.acquire(10);
+	qDebug()<<"Got id "<<requestId;
+	event_loop.exec();
 	return(script_ret_val);
 }
 
 void NSScriptHelper::processReturnValue( int requestId, QVariant value ) {
 	Q_UNUSED(requestId)
+	qDebug()<<"Received return value "<<value;
 	script_ret_val = value;
-	sem_sync.release(10);
+	event_loop.exit();
+}
+
+QVariant NSScriptHelper::DummyCall(QVariantMap server, QString dummy_string) {
+	client = new xmlrpc::Client(this);
+	int port_number =server[QString("port")].toInt();
+	QString address = "localhost";
+	client->setHost(address, port_number);
+	connect( client, SIGNAL(done( int, QVariant )),
+		this, SLOT(processReturnValue( int, QVariant )) );
+	connect( client, SIGNAL(failed( int, int, QString )),
+		this, SLOT(processFault( int, int, QString )) );
+	client->request( "Dummy",
+		dummy_string);
+	event_loop.exec();
+	return(script_ret_val);
 }
 
 void NSScriptHelper::processFault( int requestId, int errorCode, QString errorString ) {
@@ -76,4 +90,6 @@ void NSScriptHelper::processFault( int requestId, int errorCode, QString errorSt
 	Logger("Name Server Scripthelper",
 		   "server_log").WriteLogLine(QString("Error"),
 			QString("Error in communication with application server: Code(%1), String(%2).").arg(errorCode).arg(errorString));
+	// !!! how to return error here?
+	event_loop.exit();
 }

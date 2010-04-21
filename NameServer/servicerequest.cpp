@@ -2,15 +2,18 @@
 
 #include <QSemaphore>
 #include <QTcpSocket>
+#include <QTimer>
 
 #include "../SharedServices/profilemgr.h"
 #include "nsscriptrunner.h"
+
+#include "../RPC/xml_rpc/client.h"
 
 ServiceRequest::ServiceRequest(xmlrpc::Server* srv,
 							   Server* server,
 							   QList<xmlrpc::Variant> parameters,
 							   int requestId,
-							   ServiceRequest::RequestType request_type) : sync_sem(0)
+							   ServiceRequest::RequestType request_type) : QRunnable(), sync_sem(0)
 {
 	this->srv = srv;
 	this->parameters = parameters;
@@ -45,6 +48,7 @@ void ServiceRequest::run(void) {
 	// Do our action
 	QTcpSocket* socket = NULL;
 	if (our_request == request_file) {
+		qDebug()<<"Getting file ";
 		QVariant ret_val = Service_RequestFile(parameters[0]);
 		socket = srv->sendReturnValue( requestId, ret_val.toByteArray());
 	}

@@ -1,5 +1,7 @@
 #include "server.h"
 #include "../RPC/xml_rpc/server.h"
+#include "../RPC/xml_rpc/client.h"
+
 #include "applicationserver.h"
 #include <QHostAddress>
 #include <QHostInfo>
@@ -7,6 +9,7 @@
 
 #include "../SharedServices/logger.h"
 #include "servicerequest.h"
+
 
 Server::Server( quint16 port, QObject *parent )
 	  : QObject( parent ) {
@@ -44,10 +47,9 @@ void Server::processRequest( int requestId, QString methodName,
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
 	else if (methodName == "Service_RequestFile") {
-		QList<int> port_list = GetActiveApplicationServerPorts();
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
 			requestId, ServiceRequest::request_file);
-		request->setAutoDelete(true); // let the pool handle deletion
+		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
 	}
@@ -98,9 +100,9 @@ QVariantMap Server::GetActiveApplicationServers(void) {
 	foreach(ApplicationServer* app, appserver_map) {
 		if (app->GetKeepAliveGap() < tick*keep_alive_gap*2) {
 			QVariantMap attrs;
-			attrs[QString("port")]=app->GetPortNumber();
-			attrs[QString("name")]=app->GetServerName();
-			attrs[QString("gap")]=app->GetKeepAliveGap();
+			attrs[QString("port")]=QVariant(app->GetPortNumber());
+			attrs[QString("name")]=QVariant(app->GetServerName());
+			attrs[QString("gap")]=QVariant(app->GetKeepAliveGap());
 			our_map[QString(app->GetPid())] = attrs;
 		}
 	}

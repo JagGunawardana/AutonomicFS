@@ -10,7 +10,8 @@ Server::Server(quint16 suggested_port, QString server_name, QObject* parent) :
 	srv = new xmlrpc::Server(this);
 	this->server_name = server_name;
 	//register our methods
-	srv->registerMethod("Service_FileByName", QVariant::List, QVariant::String);
+	srv->registerMethod("Service_FileByName", QVariant::String, QVariant::String);
+	srv->registerMethod("Dummy", QVariant::String, QVariant::String);
 
 	// Connect to our processor
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
@@ -58,7 +59,9 @@ Server::~Server() {
 
 void Server::processRequest( int requestId, QString methodName,
 							 QList<xmlrpc::Variant> parameters ) {
-	qDebug() << "Received a request ***** "<<methodName;
+	Logger("Application server",
+		   "../NameServer/server_log").WriteLogLine(QString("Script"),
+			QString("Application server name (%1), on port (%2) received request name (%3)....").arg(server_name).arg(port).arg(methodName));
 	if (methodName == "Service_FileByName") {
 		ApplicationServiceRequest* request = new ApplicationServiceRequest(srv, parameters, requestId,
 			ApplicationServiceRequest::request_FileByName);
@@ -69,6 +72,10 @@ void Server::processRequest( int requestId, QString methodName,
 	else if (methodName == "Service_FileByHash") {
 		QVariant ret_val;
 		srv->sendReturnValue( requestId, ret_val.toBool());
+	}
+	else if (methodName == "Dummy") {
+		QVariant ret_val = "Hello dummy";
+		srv->sendReturnValue( requestId, ret_val.toString());
 	}
 	else {
 		qDebug() << QString("Application server - bad service name given ("+methodName+").");

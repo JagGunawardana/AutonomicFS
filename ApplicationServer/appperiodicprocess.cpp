@@ -30,7 +30,7 @@ void AppPeriodicProcess::run(void) {
 
 void AppPeriodicProcess::SetupPeriodicProcesses(void) {
 	// Register our presense with the name server
-	QString address = "127.0.0.1";
+	QString address = "localhost";
 	ns_client = new NSClient(address, server_name);
 	ns_client->RegisterWithNameServer(port, "NEUTRAL");
 
@@ -65,7 +65,6 @@ void AppPeriodicProcess::PeriodicProcesses(void) {
 		ScriptRunner script("report_load");
 		int load;
 		script.GetResult(load);
-		qDebug() << "Server load is " << load;
 	}
 	// Report on files under management
 

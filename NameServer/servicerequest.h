@@ -8,8 +8,7 @@ class QMutex;
 class QThread;
 class Server;
 
-class ServiceRequest : public QRunnable
-{
+class ServiceRequest : public QRunnable {
 private:
 	xmlrpc::Server *srv;
 	QList<xmlrpc::Variant> parameters;

@@ -1,8 +1,20 @@
+#Name server port
 port=8085
+
+#Periodic proceess 
+#Tick interval (ms)
 periodic_tick=500
 
+#Number of tick intervals between each periodic process
 KeepAlive=2
 ReportLoad=6
 
+#Port range for application servers
 AppServerPortMin=8090
 AppServerPortMax=9100
+
+#Logging
+
+#What to ignore
+NoLog="Periodic_process,KeepAlive,Ping"
+
