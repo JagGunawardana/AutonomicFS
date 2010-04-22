@@ -57,7 +57,7 @@ public:
 	virtual ~Client();
 
     int request( QList<Variant> params, QString methodName );
-
+	void UseBigBuffer(void) {qDebug()<<"Using a big buffer";use_big_buffer = true;}
     /* overloaded methods */
     int request( QString methodName );
     int request( QString methodName, Variant param1 );
@@ -83,6 +83,9 @@ protected slots:
 private:
 	class Private;
 	Private *d;
+	QByteArray* silly_buffer;
+	bool use_big_buffer;
+
 }; 
 
 } // namespace

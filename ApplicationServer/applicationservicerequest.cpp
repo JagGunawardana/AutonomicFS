@@ -50,8 +50,18 @@ void ApplicationServiceRequest::run(void) {
 		tmp_var["ret_val"]=ret_val.toList()[0].toBool();
 		tmp_var["file"]=ret_val.toList()[1].toByteArray();
 		socket = srv->sendReturnValue( requestId, tmp_var);
-		QEventLoop().processEvents(QEventLoop::AllEvents, 60000);
+// We need to process events to send
 	}
+	else if (our_request == request_AllFilesList) {
+		QVariant ret_val = Service_RequestFileByName(parameters[0]);
+		QMap<QString, xmlrpc::Variant> tmp_var;
+		tmp_var["ret_val"]=ret_val.toList()[0].toBool();
+		tmp_var["file"]=ret_val.toList()[1].toByteArray();
+		socket = srv->sendReturnValue( requestId, tmp_var);
+
+	}
+	// Next line is required to cleanly send
+	QEventLoop().processEvents(QEventLoop::AllEvents, 200000);
 	// Clean up threads and socket ownership
 	sync_sem.release(20); // clean up sempahore
 	if (socket!=NULL)
@@ -61,7 +71,16 @@ void ApplicationServiceRequest::run(void) {
 QVariant ApplicationServiceRequest::Service_RequestFileByName(QVariant file_name) {
 	Logger("Application server",
 		   "../NameServer/server_log").WriteLogLine(QString("Service"),
-													QString("Received request (FileByName) file (%1)....").arg(file_name.toString()));
+													QString("Received request (FileByName) for file (%1)....").arg(file_name.toString()));
 	FileManager* fm = FileManager::GetFileManager();
 	return(fm->CheckServeFileByName(file_name.toString()));
 }
+
+QList<QMap<QString, QString> > ApplicationServiceRequest::GetAllFilesList(void) {
+	Logger("Application server",
+		   "../NameServer/server_log").WriteLogLine(QString("Service"),
+													QString("Received request (GetAllFilesList)...."));
+	FileManager* fm = FileManager::GetFileManager();
+	return(fm->GetAllFilesList());
+}
+

@@ -18,9 +18,12 @@ private:
 	QThread* master_thread;
 	QObject* socket_parent;
 	Server* server;
+protected:
+	QVariant Service_RequestFile(QVariant file_name);
+	QVariant Service_GetAllFilesUnderMgt(void);
 public:
 	void run();
-	enum RequestType {request_file} our_request;
+	enum RequestType {request_file, request_filesundermgt} our_request;
 	QThread* GetOurThread(void) {return(our_thread);}
 	ServiceRequest(xmlrpc::Server* srv,
 				   Server* server,
@@ -28,7 +31,6 @@ public:
 				   int requestId,
 				   ServiceRequest::RequestType request);
 	~ServiceRequest();
-	QVariant Service_RequestFile(QVariant file_name);
 	void TransferSocket(void);
 	void TransferBackSocket(QTcpSocket* socket);
 };

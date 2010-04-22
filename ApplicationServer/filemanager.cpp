@@ -126,10 +126,47 @@ bool FileManager::CheckFileInStoreByName(QString file_name) {
 	Soprano::StatementIterator it = rdfmod->listStatements(Soprano::Node(),
 														   predicate_hasname,
 														   Soprano::LiteralValue(file_name));
+	if (!it.isValid()) // we don't have it so lets get out
+		return(false);
 	it.next();
 	Soprano::Statement stmt = *it;
 	if (stmt.isValid() && stmt.object()==Soprano::LiteralValue(file_name))
 		return(true);
 	else
 		return(false);
+}
+
+QList<QMap<QString, QString> > FileManager::GetAllFilesList(void) {
+	QList<QMap<QString, QString> > ret_val;
+
+	Soprano::StatementIterator it = rdfmod->listStatements(Soprano::Node(),
+														   predicate_hasname,
+														   Soprano::Node());
+	if (!it.isValid()) // we don't have it so lets get out
+		return(ret_val);
+	QString file_name;
+	QString file_hash;
+	while(it.next()) {
+		Soprano::StatementIterator it1;
+		Soprano::Statement stmt = *it;
+		if (stmt.isValid()) {
+			file_name = stmt.object().toString();
+			it1 = rdfmod->listStatements(stmt.subject(),
+															   predicate_hashash,
+															   Soprano::Node());
+		}
+		else
+			continue;
+		it1.next();
+		if (it1.isValid()) {
+			Soprano::Statement stmt1 = *it1;
+			file_hash = stmt1.object().toString();
+		}
+		QMap<QString, QString> tmp;
+		tmp["name"]=file_name;
+		tmp["hash"]=file_hash;
+		ret_val.append(tmp);
+
+	}
+	return(ret_val);
 }

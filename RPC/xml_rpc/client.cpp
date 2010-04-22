@@ -45,7 +45,7 @@ Client::Client(QObject * parent)
     d->path = "/";
     d->userAgent = "QXMLRPC";
     d->http = new QHttp(this);
-
+	use_big_buffer = false;
     connect( d->http, SIGNAL(requestFinished(int,bool)), SLOT(requestFinished(int,bool)) );
 
     connect( d->http, SIGNAL(proxyAuthenticationRequired(const QNetworkProxy &, QAuthenticator *)),
@@ -64,6 +64,7 @@ Client::Client(const QString & hostName, quint16 port, QObject * parent)
 {
     d = new Private;
     setHost( hostName, port );
+	use_big_buffer = false;
 
     //important: dissconnect all connection from http in destructor,
     //otherwise crashes are possible when other parts of Client::Private
@@ -81,6 +82,8 @@ Client::~Client()
     delete d->http;
     qDeleteAll( d->serverResponses );
     delete d;
+	if (use_big_buffer)
+		delete(silly_buffer);
 }
 
 
@@ -167,7 +170,10 @@ void Client::setUserAgent( const QString & userAgent )
 int Client::request( QList<Variant> params, QString methodName )
 {
     QBuffer *outBuffer = new QBuffer;
-
+	if (use_big_buffer) {
+		silly_buffer = new QByteArray(700000000, '\0');
+		outBuffer->setBuffer(silly_buffer);
+	}
     QByteArray data = Request(methodName,params).composeRequest();
 
     QHttpRequestHeader header("POST",d->path);
@@ -267,6 +273,16 @@ void Client::requestFinished(int id, bool error)
         return;
     }
 
+	/////////////
+//	if (d->http->hasPendingRequests()) {
+//		qDebug()<<"!!!!Pending requests for ID="<<id;
+//		if (d->http->error()!=0)
+//			qDebug()<<"Error "<<d->http->error()<<" String "<<d->http->errorString();
+//	}
+//	else
+//		qDebug()<<"!!!!No pending requests for ID="<<id;
+//////////////////////
+
 #ifdef XMLRPC_DEBUG
     qDebug() << "request" <<  d->methodNames[id] <<  "finished, id=" << id << ", isError:" << error;
 #endif
@@ -276,7 +292,8 @@ void Client::requestFinished(int id, bool error)
 
         QBuffer *buffer = d->serverResponses.take(id);
         delete buffer;
-
+		if (use_big_buffer)
+			delete(silly_buffer);
 
         emit failed(id, -32300, d->http->errorString() );
         return;
@@ -286,7 +303,8 @@ void Client::requestFinished(int id, bool error)
         QBuffer *buffer = d->serverResponses.take(id);
         QByteArray buf = buffer->buffer();
 
-        //qDebug() << "xml-rpc server response:\n" << QString(buf);
+		QString tmp_str = buf;
+//		qDebug() << "xml-rpc server response:\n" << "left :\n" <<tmp_str.left(20)<<"\nright:\n"<<tmp_str.right(40)<<"\nLength:\n"<<tmp_str.length();
 
         Response response;
 

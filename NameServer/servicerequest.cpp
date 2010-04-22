@@ -8,6 +8,7 @@
 #include "nsscriptrunner.h"
 
 #include "../RPC/xml_rpc/client.h"
+#include "../RPC/xml_rpc/variant.h"
 
 ServiceRequest::ServiceRequest(xmlrpc::Server* srv,
 							   Server* server,
@@ -50,11 +51,25 @@ void ServiceRequest::run(void) {
 	if (our_request == request_file) {
 		QVariant ret_val = Service_RequestFile(parameters[0]);
 		socket = srv->sendReturnValue( requestId, ret_val.toByteArray());
+// Should we enter event loop here !!! ?
+	}
+	else if (our_request == request_filesundermgt) {
+		QVariant ret_val = Service_GetAllFilesUnderMgt();
+		QVariantList lst = ret_val.toList();
+		QList<Variant> return_list;
+		// !!!
+		socket = srv->sendReturnValue( requestId, ret_val.toByteArray());
 	}
 	// Clean up threads and socket ownership
 	sync_sem.release(20); // clean up sempahore
 	if (socket!=NULL)
 		TransferBackSocket(socket);
+}
+
+QVariant ServiceRequest::Service_GetAllFilesUnderMgt(void) {
+	QList<int> app_ports = server->GetActiveApplicationServerPorts();
+
+
 }
 
 QVariant ServiceRequest::Service_RequestFile(QVariant file_name) {

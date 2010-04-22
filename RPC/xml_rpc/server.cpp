@@ -54,16 +54,14 @@ void Server::Private::sendResponse( QTcpSocket *socket, QByteArray data, bool ke
 
     header.setValue( "Content-Encoding", "UTF-8" );
     header.setContentLength( data.size() );
-
     socket->write( header.toString().toUtf8() );
     socket->write( data );
 
 
     if ( !keepAlive ) {
-        //qDebug() << "close connection";
         socket->close();
-        socket->disconnectFromHost();
-		socket->waitForDisconnected(); // we needed this for the multi-threading !!! ???
+		socket->disconnectFromHost();
+		socket->waitForDisconnected(); // we needed this for the multi-threading (jag) !!! ???
     }
 }
 
@@ -198,7 +196,7 @@ void Server::newConnection()
     //qDebug() << "new connection";
     while ( d->server->hasPendingConnections() ) {
         QTcpSocket *socket = d->server->nextPendingConnection();
-    
+//		socket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
         if ( !socket )
             return;
     
@@ -219,8 +217,9 @@ void Server::processRequest( QByteArray request, QTcpSocket *socket )
 	// Just in case - make this a simple critical section
 	critical_section.lock();
     d->lastRequestId++;
-	critical_section.unlock();
 	int requestId = d->lastRequestId;
+	critical_section.unlock();
+
     d->processingRequests[ requestId ] = socket;
 
 

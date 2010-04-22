@@ -65,6 +65,16 @@ QVariant NSScriptHelper::TryGetFileByName(QVariantMap server, QString file_name)
 void NSScriptHelper::processReturnValue( int requestId, QVariant value ) {
 	Q_UNUSED(requestId)
 	script_ret_val = value;
+	event_loop.processEvents(QEventLoop::AllEvents);
+	event_loop.exit();
+}
+
+void NSScriptHelper::processFault( int requestId, int errorCode, QString errorString ) {
+	Q_UNUSED( requestId );
+	Logger("Name Server Scripthelper",
+		   "server_log").WriteLogLine(QString("Error"),
+			QString("Error in communication with application server: Code(%1), String(%2).").arg(errorCode).arg(errorString));
+	// !!! how to return error here?
 	event_loop.exit();
 }
 
@@ -83,11 +93,3 @@ QVariant NSScriptHelper::DummyCall(QVariantMap server, QString dummy_string) {
 	return(script_ret_val);
 }
 
-void NSScriptHelper::processFault( int requestId, int errorCode, QString errorString ) {
-	Q_UNUSED( requestId );
-	Logger("Name Server Scripthelper",
-		   "server_log").WriteLogLine(QString("Error"),
-			QString("Error in communication with application server: Code(%1), String(%2).").arg(errorCode).arg(errorString));
-	// !!! how to return error here?
-	event_loop.exit();
-}

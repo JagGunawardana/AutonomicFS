@@ -7,7 +7,7 @@
 class ApplicationServiceRequest : public QRunnable
 {	
 public:
-	enum RequestType {request_FileByName, request_FileByHash} our_request;
+	enum RequestType {request_FileByName, request_FileByHash, request_AllFilesList} our_request;
 	ApplicationServiceRequest(xmlrpc::Server* srv,
 				   QList<xmlrpc::Variant> parameters,
 				   int requestId,
@@ -15,9 +15,11 @@ public:
 	~ApplicationServiceRequest();
 	void run();
 	QThread* GetOurThread(void) {return(our_thread);}
-	QVariant Service_RequestFileByName(QVariant file_name);
 	void TransferSocket(void);
 	void TransferBackSocket(QTcpSocket* socket);
+protected:
+	QVariant Service_RequestFileByName(QVariant file_name);
+	QList<QMap<QString, QString> > GetAllFilesList(void);
 private:
 	xmlrpc::Server *srv;
 	QList<xmlrpc::Variant> parameters;

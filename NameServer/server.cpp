@@ -20,6 +20,7 @@ Server::Server( quint16 port, QObject *parent )
 	srv->registerMethod( "RegisterAppServer", QVariant::Bool, QVariant::String, QVariant::Int, QVariant::Int, QVariant::String );
 	srv->registerMethod( "Ping", QVariant::Bool, QVariant::Int );
 	srv->registerMethod("Service_RequestFile", QVariant::ByteArray, QVariant::String);
+	srv->registerMethod("Service_GetAllFilesUnderMgt",QVariant::List);
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
 		this, SLOT(processRequest( int, QString, QList<xmlrpc::Variant>)));
 
@@ -49,6 +50,13 @@ void Server::processRequest( int requestId, QString methodName,
 	else if (methodName == "Service_RequestFile") {
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
 			requestId, ServiceRequest::request_file);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Service_GetAllFilesUnderMgt") {
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_filesundermgt);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();

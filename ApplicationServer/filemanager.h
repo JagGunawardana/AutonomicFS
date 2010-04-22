@@ -15,6 +15,7 @@ public:
 	static FileManager* GetFileManager(QString server_name="", QString file_store="", int max_size = 0);
 	// Our access functions
 	QVariant CheckServeFileByName(QString file_name);
+	QList<QMap<QString, QString> > GetAllFilesList(void);
 protected:
 	void run(void);
 	QString GenerateHash(QString path_to_file);

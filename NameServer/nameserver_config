@@ -16,5 +16,5 @@ AppServerPortMax=9100
 #Logging
 
 #What to ignore
-NoLog="Periodic_process,KeepAlive,Ping"
+NoLog="Periodic_process,KeepAlive,Ping,Script"
 

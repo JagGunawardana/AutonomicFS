@@ -60,7 +60,7 @@ Server::~Server() {
 void Server::processRequest( int requestId, QString methodName,
 							 QList<xmlrpc::Variant> parameters ) {
 	Logger("Application server",
-		   "../NameServer/server_log").WriteLogLine(QString("Script"),
+		   "../NameServer/server_log").WriteLogLine(QString("Service"),
 			QString("Application server name (%1), on port (%2) received request name (%3)....").arg(server_name).arg(port).arg(methodName));
 	if (methodName == "Service_FileByName") {
 		ApplicationServiceRequest* request = new ApplicationServiceRequest(srv, parameters, requestId,
