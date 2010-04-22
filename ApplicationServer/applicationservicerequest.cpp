@@ -44,17 +44,13 @@ void ApplicationServiceRequest::run(void) {
 	sync_sem.acquire(20);
 	// Do our action
 	QTcpSocket* socket = NULL;
-	qDebug()<<"Received request";
 	if (our_request == request_FileByName) {
 		QVariant ret_val = Service_RequestFileByName(parameters[0]);
-//		xmlrpc::Variant v1 = ret_val.toList()[0].toBool();
-//		xmlrpc::Variant v2 = ret_val.toList()[1].toByteArray();
-//		xmlrpc::Variant v1 = true;
-//		xmlrpc::Variant v2 = 10;
-		QMap<QString, xmlrpc::Variant> temp_list;
-		temp_list["ret_val"]=QVariant(true).toBool();
-		temp_list["file"]=QString("Hello");
-		socket = srv->sendReturnValue( requestId, QString("Hello"));
+		QMap<QString, xmlrpc::Variant> tmp_var;
+		tmp_var["ret_val"]=ret_val.toList()[0].toBool();
+		tmp_var["file"]=ret_val.toList()[1].toByteArray();
+		socket = srv->sendReturnValue( requestId, tmp_var);
+		QEventLoop().processEvents(QEventLoop::AllEvents, 60000);
 	}
 	// Clean up threads and socket ownership
 	sync_sem.release(20); // clean up sempahore
@@ -63,7 +59,6 @@ void ApplicationServiceRequest::run(void) {
 }
 
 QVariant ApplicationServiceRequest::Service_RequestFileByName(QVariant file_name) {
-		qDebug()<<"Getting file by name";
 	Logger("Application server",
 		   "../NameServer/server_log").WriteLogLine(QString("Service"),
 													QString("Received request (FileByName) file (%1)....").arg(file_name.toString()));

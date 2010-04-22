@@ -56,16 +56,14 @@ QVariant NSScriptHelper::TryGetFileByName(QVariantMap server, QString file_name)
 		this, SLOT(processReturnValue( int, QVariant )) );
 	connect( client, SIGNAL(failed( int, int, QString )),
 		this, SLOT(processFault( int, int, QString )) );
-	int requestId = client->request( "Service_FileByName",
+	client->request( "Service_FileByName",
 		file_name);
-	qDebug()<<"Got id "<<requestId;
 	event_loop.exec();
 	return(script_ret_val);
 }
 
 void NSScriptHelper::processReturnValue( int requestId, QVariant value ) {
 	Q_UNUSED(requestId)
-	qDebug()<<"Received return value "<<value;
 	script_ret_val = value;
 	event_loop.exit();
 }

@@ -48,7 +48,6 @@ void ServiceRequest::run(void) {
 	// Do our action
 	QTcpSocket* socket = NULL;
 	if (our_request == request_file) {
-		qDebug()<<"Getting file ";
 		QVariant ret_val = Service_RequestFile(parameters[0]);
 		socket = srv->sendReturnValue( requestId, ret_val.toByteArray());
 	}

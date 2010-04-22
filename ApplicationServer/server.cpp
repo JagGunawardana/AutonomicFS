@@ -10,7 +10,7 @@ Server::Server(quint16 suggested_port, QString server_name, QObject* parent) :
 	srv = new xmlrpc::Server(this);
 	this->server_name = server_name;
 	//register our methods
-	srv->registerMethod("Service_FileByName", QVariant::String, QVariant::String);
+	srv->registerMethod("Service_FileByName", QVariant::Map, QVariant::String);
 	srv->registerMethod("Dummy", QVariant::String, QVariant::String);
 
 	// Connect to our processor

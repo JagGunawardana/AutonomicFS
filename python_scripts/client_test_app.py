@@ -12,7 +12,7 @@ s = ServerProxy('http://localhost:8090')
 for i in range(file_count):
     file_content =  s.Service_FileByName(sys.argv[1]);
     file = open(file_name+str(i), "wb")
-    file.write(str(file_content[1]))
+    file.write(str(file_content['file']))
     print "Got file %s, count %d" %(file_name, i)
     file.close()
 

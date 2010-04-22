@@ -13,6 +13,6 @@ for i in range(file_count):
     file_content =  s.Service_RequestFile(sys.argv[1]);
     file = open(file_name+str(i), "wb")
     file.write(str(file_content))
-    print "Got file %s, count %d" %(file_name, i)
+    print "Got file %s, count %d, length %d" %(file_name, i, len(str(file_content)))
     file.close()
 
