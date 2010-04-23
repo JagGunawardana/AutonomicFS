@@ -19,7 +19,7 @@ public:
 	void TransferBackSocket(QTcpSocket* socket);
 protected:
 	QVariant Service_RequestFileByName(QVariant file_name);
-	QList<QMap<QString, QString> > GetAllFilesList(void);
+	QList<QMap<QString, QString> > Service_GetAllFilesList(void);
 private:
 	xmlrpc::Server *srv;
 	QList<xmlrpc::Variant> parameters;

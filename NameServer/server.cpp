@@ -39,6 +39,8 @@ Server::~Server() {
 void Server::processRequest( int requestId, QString methodName,
 							 QList<xmlrpc::Variant> parameters ) {
 	if (methodName == "RegisterAppServer") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
 		QVariant ret_val = RegisterAppServer(parameters[0], parameters[1],
 						  parameters[2], parameters[3]);
 		srv->sendReturnValue( requestId, ret_val.toBool());
@@ -48,6 +50,8 @@ void Server::processRequest( int requestId, QString methodName,
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
 	else if (methodName == "Service_RequestFile") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
 			requestId, ServiceRequest::request_file);
 		request->setAutoDelete(true);

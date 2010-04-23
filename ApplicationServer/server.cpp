@@ -12,6 +12,7 @@ Server::Server(quint16 suggested_port, QString server_name, QObject* parent) :
 	//register our methods
 	srv->registerMethod("Service_FileByName", QVariant::Map, QVariant::String);
 	srv->registerMethod("Dummy", QVariant::String, QVariant::String);
+	srv->registerMethod("Service_GetAllFilesUnderMgt", QVariant::List);
 
 	// Connect to our processor
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
@@ -72,6 +73,13 @@ void Server::processRequest( int requestId, QString methodName,
 	else if (methodName == "Service_FileByHash") {
 		QVariant ret_val;
 		srv->sendReturnValue( requestId, ret_val.toBool());
+	}
+	else if (methodName == "Service_GetAllFilesUnderMgt") {
+		ApplicationServiceRequest* request = new ApplicationServiceRequest(srv, parameters, requestId,
+			ApplicationServiceRequest::request_AllFilesList);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
 	}
 	else if (methodName == "Dummy") {
 		QVariant ret_val = "Hello dummy";
