@@ -23,7 +23,7 @@ private:
 	QVariant script_ret_val;
 protected:
 	QVariant Service_RequestFile(QVariant file_name);
-	QList<xmlrpc::Variant>  Service_GetAllFilesUnderMgt(void);
+	QVariant  Service_GetAllFilesUnderMgt(void);
 	QEventLoop event_loop;
 public:
 	void run();
@@ -37,6 +37,7 @@ public:
 	~ServiceRequest();
 	void TransferSocket(void);
 	void TransferBackSocket(QTcpSocket* socket);
+	QList<xmlrpc::Variant> ConvertToMapList(QVariant var_in);
 protected slots:
 	void processReturnValue(int requestId, QVariant value);
 	void processFault(int requestId, int errorCode, QString errorString);

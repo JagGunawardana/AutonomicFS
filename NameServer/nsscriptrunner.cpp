@@ -42,6 +42,22 @@ void NSScriptRunner::GetResult(QString& str_val) {
 		str_val = "";
 }
 
+void NSScriptRunner::GetResult(QByteArray& byte_val) {
+	byte_val = ret_val->toVariant().toByteArray();
+}
+
+void NSScriptRunner::GetResult(QVariant& variant) {
+	if (ret_val->isVariant())
+		variant = ret_val->toVariant();
+	else
+		variant = QVariant();
+}
+
+void NSScriptRunner::GetResult(QList<QVariant>& variant) {
+	variant = ret_val->toVariant().toList();
+}
+
+
 void NSScriptRunner::EvaluateScript(void) {
 	Logger("Name Server", "server_log").WriteLogLine(QString("Script"),
 		QString("Running script: file(%1).").arg(script));

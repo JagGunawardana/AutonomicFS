@@ -59,6 +59,8 @@ void Server::processRequest( int requestId, QString methodName,
 		request->TransferSocket();
 	}
 	else if (methodName == "Service_GetAllFilesUnderMgt") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
 			requestId, ServiceRequest::request_filesundermgt);
 		request->setAutoDelete(true);
