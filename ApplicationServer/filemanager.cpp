@@ -136,8 +136,8 @@ bool FileManager::CheckFileInStoreByName(QString file_name) {
 		return(false);
 }
 
-QList<QMap<QString, QString> > FileManager::GetAllFilesList(void) {
-	QList<QMap<QString, QString> > ret_val;
+QList<QList<QString> > FileManager::GetAllFilesList(void) {
+	QList<QList<QString> > ret_val;
 	Soprano::StatementIterator it = rdfmod->listStatements(Soprano::Node(),
 														   predicate_hasname,
 														   Soprano::Node());
@@ -161,10 +161,10 @@ QList<QMap<QString, QString> > FileManager::GetAllFilesList(void) {
 			Soprano::Statement stmt1 = *it1;
 			file_hash = stmt1.object().toString();
 		}
-		QMap<QString, QString> tmp;
-		tmp["name"]=file_name;
-		tmp["hash"]=file_hash;
-		ret_val.append(tmp);
+		QList<QString> tmp_list;
+		tmp_list.append(file_hash);
+		tmp_list.append(file_name);
+		ret_val.append(tmp_list);
 	}
 	return(ret_val);
 }

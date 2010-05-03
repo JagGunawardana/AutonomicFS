@@ -53,13 +53,11 @@ void ApplicationServiceRequest::run(void) {
 // We need to process events to send
 	}
 	else if (our_request == request_AllFilesList) {
-		QList<QMap<QString, QString> >  all_files = Service_GetAllFilesList();
+		QList<QList<QString> >  all_files = Service_GetAllFilesList();
 		QList<xmlrpc::Variant> ret_val;
 		for (int i = 0; i < all_files.size(); ++i) {
-			QMap<QString, xmlrpc::Variant> tmp_map;
-			tmp_map["file_name"] = all_files.at(i)["name"];
-			tmp_map["file_hash"] = all_files.at(i)["hash"];
-			ret_val.append(tmp_map);
+			xmlrpc::Variant tmp_var(all_files.at(i));
+			ret_val.append(tmp_var);
 		}
 		socket = srv->sendReturnValue( requestId, ret_val);
 	}
@@ -79,7 +77,7 @@ QVariant ApplicationServiceRequest::Service_RequestFileByName(QVariant file_name
 	return(fm->CheckServeFileByName(file_name.toString()));
 }
 
-QList<QMap<QString, QString> > ApplicationServiceRequest::Service_GetAllFilesList(void) {
+QList<QList<QString> > ApplicationServiceRequest::Service_GetAllFilesList(void) {
 	Logger("Application server",
 		   "../NameServer/server_log").WriteLogLine(QString("Service"),
 													QString("Received request (GetAllFilesList)...."));

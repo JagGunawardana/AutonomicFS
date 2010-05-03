@@ -6,6 +6,7 @@
 #include <QHostAddress>
 #include <QHostInfo>
 #include <QDebug>
+#include <QtNetwork>
 
 #include "../SharedServices/logger.h"
 #include "servicerequest.h"
@@ -13,6 +14,7 @@
 
 Server::Server( quint16 port, QObject *parent )
 	  : QObject( parent ) {
+	// Setup server
 	srv = new xmlrpc::Server(this);
 	tick = QSettings("nameserver_config", QSettings::IniFormat).value("periodic_tick", 0).toInt();
 	keep_alive_gap = QSettings("nameserver_config", QSettings::IniFormat).value("KeepAlive", 0).toInt();
@@ -26,6 +28,20 @@ Server::Server( quint16 port, QObject *parent )
 
 	if(! srv->listen( port ) )
 		Logger("Name server", "server_log").WriteLogLine(QString("Registration"), QString("Error with Name server starting on host %1, using port %2....").arg(QHostInfo::localHostName()).arg(port));
+
+	// Setup broadcast stuff
+	// Listener first
+	broadcastListener = new QUdpSocket(this);
+	broadcastPort = QSettings("nameserver_config", QSettings::IniFormat).value("broadcast_port", 0).toInt();
+	broadcastListener->bind(broadcastPort, QUdpSocket::ShareAddress);
+	connect(broadcastListener, SIGNAL(readyRead()),
+			this, SLOT(processNSBroadcast()));
+	// Broadcaster second
+	// Setup our periodic timer
+	broadcast_timer = new QTimer(this);
+	connect(broadcast_timer , SIGNAL(timeout()), this, SLOT(SendBroadcast()));
+	int tick = QSettings("nameserver_config", QSettings::IniFormat).value("broadcast_interval", 0).toInt();
+	broadcast_timer->start(tick);
 }
 
 Server::~Server() {
@@ -34,6 +50,35 @@ Server::~Server() {
 	foreach(ApplicationServer* app, appserver_map)
 		delete(app);
 	appserver_map.clear();
+	delete(broadcast_timer);
+	delete(broadcastListener);
+}
+
+void Server::SendBroadcast(void) {
+	QUdpSocket udpSocket(this);
+	QByteArray datagram = "";
+	datagram.append(QHostInfo::localHostName());
+	udpSocket.writeDatagram(datagram.data(), datagram.size(),
+							 QHostAddress::Broadcast, broadcastPort);
+	Logger("Name Server", "server_log").WriteLogLine(QString("Periodic_process"),
+			QString("Sending name server broadcast.."));
+}
+
+void Server::processNSBroadcast(void) {
+	while (broadcastListener->hasPendingDatagrams()) {
+		QByteArray datagram;
+		datagram.resize(broadcastListener->pendingDatagramSize());
+		QHostAddress host;
+		quint16 port;
+		broadcastListener->readDatagram(datagram.data(), datagram.size(), &host, &port);
+		if (QString(datagram.data())!=QString(QHostInfo::localHostName())) {
+			Logger("Name Server", "server_log").WriteLogLine(QString("Periodic_process"),
+				QString("Received name server broadcast: %1").arg(datagram.data()));
+		}
+		else {
+			qDebug()<<"Got my own!";
+		}
+	}
 }
 
 void Server::processRequest( int requestId, QString methodName,

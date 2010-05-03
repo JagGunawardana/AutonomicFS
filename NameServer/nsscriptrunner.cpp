@@ -47,16 +47,8 @@ void NSScriptRunner::GetResult(QByteArray& byte_val) {
 }
 
 void NSScriptRunner::GetResult(QVariant& variant) {
-	if (ret_val->isVariant())
-		variant = ret_val->toVariant();
-	else
-		variant = QVariant();
+	variant = engine->fromScriptValue<QVariant>(*ret_val);
 }
-
-void NSScriptRunner::GetResult(QList<QVariant>& variant) {
-	variant = ret_val->toVariant().toList();
-}
-
 
 void NSScriptRunner::EvaluateScript(void) {
 	Logger("Name Server", "server_log").WriteLogLine(QString("Script"),

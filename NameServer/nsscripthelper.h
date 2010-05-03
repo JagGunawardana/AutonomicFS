@@ -31,10 +31,12 @@ public slots:
 	QVariant ExtractFile(QVariant file_store);
 	QVariant HasFile(QVariant file_store);
 	QVariant TryGetFileByName(QVariantMap server, QString file_name);
-
+	QVariant GetAllFilesUnderMgt(QVariantMap server);
+private slots:
 	void processReturnValue( int requestId, QVariant value );
 	void processFault( int requestId,
 					   int errorCode, QString errorString );
+
 };
 
 #endif // NSSCRIPTHELPER_H

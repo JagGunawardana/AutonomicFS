@@ -12,7 +12,7 @@ Server::Server(quint16 suggested_port, QString server_name, QObject* parent) :
 	//register our methods
 	srv->registerMethod("Service_FileByName", QVariant::Map, QVariant::String);
 	srv->registerMethod("Dummy", QVariant::String, QVariant::String);
-	srv->registerMethod("Service_GetAllFilesUnderMgt", QVariant::List, QVariant::String);
+	srv->registerMethod("Service_GetAllFilesUnderMgt", QVariant::List);
 
 	// Connect to our processor
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),

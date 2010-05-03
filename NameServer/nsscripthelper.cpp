@@ -93,3 +93,16 @@ QVariant NSScriptHelper::DummyCall(QVariantMap server, QString dummy_string) {
 	return(script_ret_val);
 }
 
+QVariant NSScriptHelper::GetAllFilesUnderMgt(QVariantMap server) {
+	client = new xmlrpc::Client(this);
+	int port_number =server[QString("port")].toInt();
+	QString address = "localhost";
+	client->setHost(address, port_number);
+	connect( client, SIGNAL(done( int, QVariant )),
+		this, SLOT(processReturnValue( int, QVariant )) );
+	connect( client, SIGNAL(failed( int, int, QString )),
+		this, SLOT(processFault( int, int, QString )) );
+	client->request( "Service_GetAllFilesUnderMgt");
+	event_loop.exec();
+	return(script_ret_val);
+}

@@ -15,7 +15,7 @@ public:
 	void GetResult(QString& str_val);
 	void GetResult(QByteArray& byte_val);
 	void GetResult(QVariant& variant);
-	void GetResult(QList<QVariant>& variant);
+
 protected:
 	void ReadFile(void);
 	void EvaluateScript(void);
