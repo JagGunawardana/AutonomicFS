@@ -1,6 +1,7 @@
 #Name server port
 port=8085
 broadcast_port=8081
+#broadcast interval (ms)
 broadcast_interval=1000
 
 #Periodic proceess 
@@ -18,6 +19,6 @@ AppServerPortMax=9100
 #Logging
 
 #What to ignore
-#NoLog="Periodic_process,KeepAlive,Ping"
-NoLog="KeepAlive,Ping"
+NoLog="Periodic_process,KeepAlive,Ping"
+#NoLog="KeepAlive,Ping"
 

@@ -1,4 +1,3 @@
-#include "server.h"
 #include "../RPC/xml_rpc/server.h"
 #include "../RPC/xml_rpc/client.h"
 
@@ -8,9 +7,10 @@
 #include <QDebug>
 #include <QtNetwork>
 
+#include "server.h"
 #include "../SharedServices/logger.h"
 #include "servicerequest.h"
-
+#include "nameserver.h"
 
 Server::Server( quint16 port, QObject *parent )
 	  : QObject( parent ) {
@@ -40,7 +40,7 @@ Server::Server( quint16 port, QObject *parent )
 	// Setup our periodic timer
 	broadcast_timer = new QTimer(this);
 	connect(broadcast_timer , SIGNAL(timeout()), this, SLOT(SendBroadcast()));
-	int tick = QSettings("nameserver_config", QSettings::IniFormat).value("broadcast_interval", 0).toInt();
+	ns_tick = QSettings("nameserver_config", QSettings::IniFormat).value("broadcast_interval", 0).toInt();
 	broadcast_timer->start(tick);
 }
 
@@ -50,6 +50,9 @@ Server::~Server() {
 	foreach(ApplicationServer* app, appserver_map)
 		delete(app);
 	appserver_map.clear();
+	foreach(NameServer* ns, nameserver_map)
+		delete(ns);
+	nameserver_map.clear();
 	delete(broadcast_timer);
 	delete(broadcastListener);
 }
@@ -72,11 +75,15 @@ void Server::processNSBroadcast(void) {
 		quint16 port;
 		broadcastListener->readDatagram(datagram.data(), datagram.size(), &host, &port);
 		if (QString(datagram.data())!=QString(QHostInfo::localHostName())) {
+			// Process broadcast address, if not received before then register, otherwise process as keep alive message
+			if (nameserver_map.contains(host.toString())) {
+				nameserver_map[host.toString()]->KeepAliveMessage();
+			}
+			else {
+				nameserver_map[host.toString()] = new NameServer(host.toString(), port);
+			}
 			Logger("Name Server", "server_log").WriteLogLine(QString("Periodic_process"),
 				QString("Received name server broadcast: %1").arg(datagram.data()));
-		}
-		else {
-			qDebug()<<"Got my own!";
 		}
 	}
 }
@@ -152,6 +159,15 @@ QList<int> Server::GetActiveApplicationServerPorts(void) {
 			list.append(app->GetPortNumber());
 	}
 	return(list);
+}
+
+QVariantList Server::GetActiveNameServers(void) {
+	QVariantList our_addresses;
+	foreach(NameServer* ns, nameserver_map) {
+		if (ns->GetKeepAliveGap() < ns_tick*2)
+			our_addresses.append(QVariant(ns->GetAddress()));
+	}
+	return(our_addresses);
 }
 
 QVariantMap Server::GetActiveApplicationServers(void) {

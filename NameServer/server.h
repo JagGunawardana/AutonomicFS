@@ -8,6 +8,7 @@
 
 #include "../RPC/xml_rpc/server.h"
 class ApplicationServer;
+class NameServer;
 
 class Server : public QObject {
 	Q_OBJECT
@@ -16,12 +17,15 @@ public:
 	Server( quint16 port, QObject *parent = 0 );
 	~Server();
 	QVariantMap GetActiveApplicationServers(void);
-	QList<int> GetActiveApplicationServerPorts(void);
+	QVariantList GetActiveNameServers(void);
 private:
+	QList<int> GetActiveApplicationServerPorts(void);
 	xmlrpc::Server* srv;
 	QMap<int, ApplicationServer*> appserver_map;
+	QMap<QString, NameServer*> nameserver_map;
 	int tick;
 	int keep_alive_gap;
+	int ns_tick;
 	QUdpSocket* broadcastListener;
 	int broadcastPort;
 	QTimer* broadcast_timer;

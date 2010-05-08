@@ -28,6 +28,7 @@ public slots:
 	QVariant GetParameter(QString param) {return params[param];}
 	QVariant GetNumberOfParameters(void) {return params.size();}
 	QVariant GetActiveAppServers(void);
+	QVariant GetActiveNameServers(void);
 	QVariant ExtractFile(QVariant file_store);
 	QVariant HasFile(QVariant file_store);
 	QVariant TryGetFileByName(QVariantMap server, QString file_name);

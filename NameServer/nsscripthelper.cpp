@@ -29,6 +29,10 @@ QVariant NSScriptHelper::GetActiveAppServers(void) {
 	return(server->GetActiveApplicationServers());
 }
 
+QVariant NSScriptHelper::GetActiveNameServers(void) {
+	return(server->GetActiveNameServers());
+}
+
 QVariant NSScriptHelper::HasFile(QVariant file_store) {
 	if (file_store.isValid() && file_store.type()==QVariant::List &&
 		file_store.toList()[0] == true) {
