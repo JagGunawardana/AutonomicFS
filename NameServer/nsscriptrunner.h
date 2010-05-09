@@ -9,7 +9,7 @@ class Server;
 
 class NSScriptRunner {
 public:
-	NSScriptRunner(QString script_file, Server* server, QMap<QString, QVariant> params);
+	NSScriptRunner(QString script_file, Server* server, QMap<QString, QVariant> params, int requestId);
 	~NSScriptRunner();
 	void GetResult(int& int_val);
 	void GetResult(QString& str_val);
@@ -29,6 +29,7 @@ private:
 	QScriptEngine* engine;
 	NSScriptHelper* helper;
 	Server* server;
+	int requestId;
 };
 
 #endif // NSSCRIPTRUNNER_H

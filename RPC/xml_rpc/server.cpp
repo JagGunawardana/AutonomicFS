@@ -330,6 +330,15 @@ void Server::TransferSocketThread(QThread *new_thread, int requestId) {
 	(d->processingRequests.value(requestId))->moveToThread(new_thread);
 }
 
+QString Server::GetIPAddress(int requestId) {
+	Q_ASSERT( d->processingRequests.contains( requestId ) );
+	if (isListening())
+		return((d->processingRequests.value(requestId))->localAddress().toString());
+//		return(d->server->serverAddress().toString());
+	else
+		return(QString(""));
+}
+
 /**
  * Send method return value back to client.
  * @param requestId id of the request, provided by

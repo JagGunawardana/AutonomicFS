@@ -12,13 +12,14 @@ private:
 	int port_number;
 	QVariant server_type;
 	QString server_name;
-	int keep_alive_gap;
+	int last_keep_alive_gap;
 	QTime last_time;
 public:
 	ApplicationServer(int pid, int port_number, QString server_name,
 					  QVariant server_type);
 	int KeepAliveMessage(void);
-	int GetKeepAliveGap(void) {return(keep_alive_gap);}
+	int GetKeepAliveGap(void);
+	int GetLastKeepAliveGap(void) {return(last_keep_alive_gap);}
 	int GetPid(void) {return(pid);}
 	int GetPortNumber(void) {return(port_number);}
 	QString GetServerName(void) {return(server_name);}

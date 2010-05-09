@@ -9,12 +9,16 @@ ApplicationServer::ApplicationServer(int new_pid, int new_port_number, QString n
 	port_number = new_port_number;
 	server_type = new_server_type;
 	server_name = new_server_name;
-	keep_alive_gap = 0;
+	last_keep_alive_gap = 0;
 	last_time.start();
 }
 
 int ApplicationServer::KeepAliveMessage(void) {
-	keep_alive_gap = last_time.elapsed();
+	last_keep_alive_gap = last_time.elapsed();
 	last_time.restart();
-	return(keep_alive_gap);
+	return(last_keep_alive_gap);
+}
+
+int ApplicationServer::GetKeepAliveGap(void) {
+	return(last_time.elapsed());
 }

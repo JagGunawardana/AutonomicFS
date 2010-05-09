@@ -17,7 +17,8 @@ public:
 	Server( quint16 port, QObject *parent = 0 );
 	~Server();
 	QVariantMap GetActiveApplicationServers(void);
-	QVariantList GetActiveNameServers(void);
+	QList<xmlrpc::Variant> GetActiveNameServers(void);
+	QString GetIPAddress(int requestId) {return(srv->GetIPAddress(requestId));}
 private:
 	QList<int> GetActiveApplicationServerPorts(void);
 	xmlrpc::Server* srv;

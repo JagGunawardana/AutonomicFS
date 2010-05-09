@@ -41,6 +41,7 @@ public:
 	QObject* GetSocketParent(int requestId);
 	void SetSocketParent(QObject* parent, int requestId);
 	void TransferSocketThread(QThread* new_thread, int requestId);
+	QString GetIPAddress(int requestId);
 signals:
     void incomingRequest( int requestId, QString methodName, QList<xmlrpc::Variant> parameters );
 

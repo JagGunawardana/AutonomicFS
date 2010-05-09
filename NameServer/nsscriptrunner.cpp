@@ -7,11 +7,12 @@
 
 NSScriptRunner::NSScriptRunner(QString script_file,
 							   Server* server,
-							   QMap<QString, QVariant> params) {
+							   QMap<QString, QVariant> params, int requestId) {
 	this->server = server;
 	this->params = params;
+	this->requestId = requestId;
 	engine = new QScriptEngine();
-	helper = new NSScriptHelper(engine, server, this->params);
+	helper = new NSScriptHelper(engine, server, this->params, requestId);
 	helper_value = new QScriptValue;
 	*helper_value = engine->newQObject(helper);
 	engine->globalObject().setProperty("helper", *helper_value);

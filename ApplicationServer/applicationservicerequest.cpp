@@ -46,11 +46,28 @@ void ApplicationServiceRequest::run(void) {
 	QTcpSocket* socket = NULL;
 	if (our_request == request_FileByName) {
 		QVariant ret_val = Service_RequestFileByName(parameters[0]);
-		QMap<QString, xmlrpc::Variant> tmp_var;
-		tmp_var["ret_val"]=ret_val.toList()[0].toBool();
-		tmp_var["file"]=ret_val.toList()[1].toByteArray();
+		Q_ASSERT(ret_val.canConvert(QVariant::List));
+		QVariantList tmp_lst = ret_val.toList();
+		QList<xmlrpc::Variant> tmp_var;
+		tmp_var.append(xmlrpc::Variant(tmp_lst[0].toBool()));
+		tmp_var.append(xmlrpc::Variant(tmp_lst[1].toString()));
+		tmp_var.append(xmlrpc::Variant(tmp_lst[2].toString()));
+		QByteArray new_ba(tmp_lst[3].toByteArray().toBase64());
+		tmp_var.append(xmlrpc::Variant(new_ba));
+		socket = srv->sendReturnValue( requestId, xmlrpc::Variant(tmp_var));
+	}
+	else if (our_request == request_FileByHash) {
+		QVariant ret_val = Service_RequestFileByHash(parameters[0]);
+		Q_ASSERT(ret_val.canConvert(QVariant::List));
+		QVariantList tmp_lst = ret_val.toList();
+		QList<xmlrpc::Variant> tmp_var;
+		tmp_var.append(xmlrpc::Variant(tmp_lst[0].toBool()));
+		tmp_var.append(xmlrpc::Variant(tmp_lst[1].toString()));
+		tmp_var.append(xmlrpc::Variant(tmp_lst[2].toString()));
+		QByteArray new_ba(tmp_lst[3].toByteArray().toBase64());
+		tmp_var.append(xmlrpc::Variant(new_ba));
+		tmp_var.append(xmlrpc::Variant(new_ba));
 		socket = srv->sendReturnValue( requestId, tmp_var);
-// We need to process events to send
 	}
 	else if (our_request == request_AllFilesList) {
 		QList<QList<QString> >  all_files = Service_GetAllFilesList();
@@ -75,6 +92,14 @@ QVariant ApplicationServiceRequest::Service_RequestFileByName(QVariant file_name
 													QString("Received request (FileByName) for file (%1)....").arg(file_name.toString()));
 	FileManager* fm = FileManager::GetFileManager();
 	return(fm->CheckServeFileByName(file_name.toString()));
+}
+
+QVariant ApplicationServiceRequest::Service_RequestFileByHash(QVariant hash) {
+	Logger("Application server",
+		   "../NameServer/server_log").WriteLogLine(QString("Service"),
+													QString("Received request (FileByHash) for file hash (%1)....").arg(hash.toString()));
+	FileManager* fm = FileManager::GetFileManager();
+	return(fm->CheckServeFileByHash(hash.toString()));
 }
 
 QList<QList<QString> > ApplicationServiceRequest::Service_GetAllFilesList(void) {

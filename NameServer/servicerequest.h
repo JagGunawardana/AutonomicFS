@@ -22,12 +22,13 @@ private:
 	xmlrpc::Client* client;
 	QVariant script_ret_val;
 protected:
-	QVariant Service_RequestFile(QVariant file_name);
+	QVariant Service_RequestFileByName(QVariant file_name);
+	QVariant Service_RequestFileByHash(QVariant hash);
 	QVariant  Service_GetAllFilesUnderMgt(void);
 	QEventLoop event_loop;
 public:
 	void run();
-	enum RequestType {request_file, request_filesundermgt} our_request;
+	enum RequestType {request_file_byname, request_file_byhash, request_filesundermgt} our_request;
 	QThread* GetOurThread(void) {return(our_thread);}
 	ServiceRequest(xmlrpc::Server* srv,
 				   Server* server,
@@ -38,6 +39,7 @@ public:
 	void TransferSocket(void);
 	void TransferBackSocket(QTcpSocket* socket);
 	QList<xmlrpc::Variant> ConvertToListOfVariants(QVariant var_in);
+	QList<xmlrpc::Variant> ConvertToList(QVariant var_in);
 protected slots:
 	void processReturnValue(int requestId, QVariant value);
 	void processFault(int requestId, int errorCode, QString errorString);

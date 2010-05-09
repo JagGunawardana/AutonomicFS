@@ -21,14 +21,15 @@ Server::Server( quint16 port, QObject *parent )
 	//register our methods
 	srv->registerMethod( "RegisterAppServer", QVariant::Bool, QVariant::String, QVariant::Int, QVariant::Int, QVariant::String );
 	srv->registerMethod( "Ping", QVariant::Bool, QVariant::Int );
-	srv->registerMethod("Service_RequestFile", QVariant::ByteArray, QVariant::String);
+	srv->registerMethod("Service_RequestFileByName", QVariant::List, QVariant::String);
+	srv->registerMethod("Service_RequestFileByHash", QVariant::List, QVariant::String);
 	srv->registerMethod("Service_GetAllFilesUnderMgt",QVariant::List);
+	srv->registerMethod("Client_GetAllNameServers",QVariant::List);
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
 		this, SLOT(processRequest( int, QString, QList<xmlrpc::Variant>)));
 
 	if(! srv->listen( port ) )
 		Logger("Name server", "server_log").WriteLogLine(QString("Registration"), QString("Error with Name server starting on host %1, using port %2....").arg(QHostInfo::localHostName()).arg(port));
-
 	// Setup broadcast stuff
 	// Listener first
 	broadcastListener = new QUdpSocket(this);
@@ -78,9 +79,13 @@ void Server::processNSBroadcast(void) {
 			// Process broadcast address, if not received before then register, otherwise process as keep alive message
 			if (nameserver_map.contains(host.toString())) {
 				nameserver_map[host.toString()]->KeepAliveMessage();
+				Logger("Name Server", "server_log").WriteLogLine(QString("KeepAlive"),
+						QString("Received name server broadcast from host %1").arg(host.toString()));
 			}
 			else {
 				nameserver_map[host.toString()] = new NameServer(host.toString(), port);
+				Logger("Name Server", "server_log").WriteLogLine(QString("Registration"),
+						QString("Name server registration Address(%1), on port(%2).").arg(host.toString()).arg(port));
 			}
 			Logger("Name Server", "server_log").WriteLogLine(QString("Periodic_process"),
 				QString("Received name server broadcast: %1").arg(datagram.data()));
@@ -101,11 +106,20 @@ void Server::processRequest( int requestId, QString methodName,
 		QVariant ret_val = Ping(parameters[0]);
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
-	else if (methodName == "Service_RequestFile") {
+	else if (methodName == "Service_RequestFileByName") {
 		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
 				QString("Name server service request name(%2).").arg(methodName));
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
-			requestId, ServiceRequest::request_file);
+			requestId, ServiceRequest::request_file_byname);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Service_RequestFileByHash") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_file_byhash);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
@@ -118,6 +132,14 @@ void Server::processRequest( int requestId, QString methodName,
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
+	}
+	else if (methodName == "Client_GetAllNameServers") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		QList<xmlrpc::Variant> others = GetActiveNameServers();
+		QString my_ip = GetIPAddress(requestId);
+		others.append(xmlrpc::Variant(my_ip));
+		srv->sendReturnValue( requestId, xmlrpc::Variant(others));
 	}
 	else {
 		qDebug() << QString("Name server - bad service name given ("+methodName+").");
@@ -161,11 +183,12 @@ QList<int> Server::GetActiveApplicationServerPorts(void) {
 	return(list);
 }
 
-QVariantList Server::GetActiveNameServers(void) {
-	QVariantList our_addresses;
+QList<xmlrpc::Variant> Server::GetActiveNameServers(void) {
+	QList<xmlrpc::Variant> our_addresses;
 	foreach(NameServer* ns, nameserver_map) {
-		if (ns->GetKeepAliveGap() < ns_tick*2)
-			our_addresses.append(QVariant(ns->GetAddress()));
+		qDebug()<<"Keep alive gap "<<ns->GetKeepAliveGap();
+		if ((ns->GetKeepAliveGap()) < ns_tick*2)
+			our_addresses.append(xmlrpc::Variant(ns->GetAddress()));
 	}
 	return(our_addresses);
 }

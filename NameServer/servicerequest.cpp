@@ -41,7 +41,7 @@ void ServiceRequest::TransferSocket(void) {
 }
 
 void ServiceRequest::TransferBackSocket(QTcpSocket* socket) {
-	// Clean up socket, we're resposible for it's deletion
+	// Clean up socket, we're resposible for it's deletion - don't bother with anything else as it's not used again
 	delete(socket);
 }
 
@@ -52,10 +52,15 @@ void ServiceRequest::run(void) {
 	sync_sem.acquire(20);
 	// Do our action
 	QTcpSocket* socket = NULL;
-	if (our_request == request_file) {
-		QVariant ret_val = Service_RequestFile(parameters[0]);
-		socket = srv->sendReturnValue( requestId, ret_val.toByteArray());
-// Should we enter event loop here !!! ?
+	if (our_request == request_file_byname) {
+		QVariant ret_val = Service_RequestFileByName(parameters[0]);
+		QList<xmlrpc::Variant> tmp_var = ConvertToList(ret_val);
+		socket = srv->sendReturnValue(requestId, xmlrpc::Variant(tmp_var));
+	}
+	else if (our_request == request_file_byhash) {
+		QVariant ret_val = Service_RequestFileByHash(parameters[0]);
+		QList<xmlrpc::Variant> tmp_var = ConvertToList(ret_val);
+		socket = srv->sendReturnValue(requestId, xmlrpc::Variant(tmp_var));
 	}
 	else if (our_request == request_filesundermgt) {
 		QVariant ret_val = Service_GetAllFilesUnderMgt();
@@ -68,8 +73,30 @@ void ServiceRequest::run(void) {
 		TransferBackSocket(socket);
 }
 
+QList<xmlrpc::Variant> ServiceRequest::ConvertToList(QVariant var_in) {
+	// Converts an array of arrays to a list of variants, convenience function
+	Q_ASSERT(var_in.canConvert(QVariant::List));
+	QList<QVariant> in_list = var_in.toList();
+	QList<xmlrpc::Variant> out_list;
+	for(int i=0;i<in_list.size();++i) {
+		QVariant variant = in_list.at(i);
+		if (variant.type() ==  QVariant::Bool)
+			out_list.append(xmlrpc::Variant(variant.toBool()));
+		else if (variant.type() == QVariant::String)
+			out_list.append(xmlrpc::Variant(variant.toString()));
+		else if (variant.type() == QVariant::ByteArray) {
+			QByteArray ba = variant.toByteArray();
+//			out_list.append(xmlrpc::Variant(QByteArray::fromBase64(ba)));
+			out_list.append(xmlrpc::Variant(ba));
+		}
+		else
+			Q_ASSERT(FALSE);
+	}
+	return(out_list);
+}
+
 QList<xmlrpc::Variant> ServiceRequest::ConvertToListOfVariants(QVariant var_in) {
-	// Converts an array of arrays to a list of variants
+	// Converts an array of arrays to a list of variants, convenience function
 	Q_ASSERT(var_in.canConvert(QVariant::List));
 	QList<QVariant> in_list = var_in.toList();
 	QList<xmlrpc::Variant> out_list;
@@ -100,22 +127,33 @@ void ServiceRequest::processFault( int requestId, int errorCode, QString errorSt
 	event_loop.exit();
 }
 
-QVariant ServiceRequest::Service_RequestFile(QVariant file_name) {
+QVariant ServiceRequest::Service_RequestFileByName(QVariant file_name) {
 	// Find the file and return it back
-	QByteArray file;
 	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
 	QMap<QString, QVariant> params;
 	params[QString("file_name")] = file_name;
-	NSScriptRunner script(pro->GetRelativeScriptPath("read_file"), server, params);
-	script.GetResult(file);
-	return(file);
+	NSScriptRunner script(pro->GetRelativeScriptPath("read_file_byname"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant);
+	return(variant);
+}
+
+QVariant ServiceRequest::Service_RequestFileByHash(QVariant hash) {
+	// Find the file and return it back
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_hash")] = hash;
+	NSScriptRunner script(pro->GetRelativeScriptPath("read_file_byhash"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant);
+	return(variant);
 }
 
 QVariant ServiceRequest::Service_GetAllFilesUnderMgt(void) {
 	// Get the list of files from all servers
 	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
 	QMap<QString, QVariant> params;
-	NSScriptRunner script(pro->GetRelativeScriptPath("get_all_files"), server, params);
+	NSScriptRunner script(pro->GetRelativeScriptPath("get_all_files"), server, params, requestId);
 	QVariant variant;
 	script.GetResult(variant); // !!!
 	return(variant);

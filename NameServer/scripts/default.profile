@@ -1,2 +1,3 @@
-read_file=default_read_file.js
+read_file_byname=default_read_file_byname.js
+read_file_byhash=default_read_file_byhash.js
 get_all_files=default_get_all_files.js
