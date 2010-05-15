@@ -1,3 +1,8 @@
 read_file_byname=default_read_file_byname.js
 read_file_byhash=default_read_file_byhash.js
+read_local_file_byname=default_read_local_file_byname.js
+read_local_file_byhash=default_read_local_file_byhash.js
 get_all_files=default_get_all_files.js
+get_all_local_files=default_get_all_local_files.js
+save_file=default_save_file.js
+periodic_processes=default_run_periodic.js

@@ -14,8 +14,10 @@ else:
 s = ServerProxy('http://localhost:8085')
 
 for i in range(file_count):
-    file_struct =  s.Service_RequestFileByName(sys.argv[1]);
-    file_content = file_struct[2]
+    file_struct =  s.Client_RequestFileByName(sys.argv[1]);
+    file_content = file_struct[3]
+    print file_struct
+    print file_content
     bin = Binary(file_content)
     bin.decode(file_content)
     file = open(file_name+str(i), "wb")

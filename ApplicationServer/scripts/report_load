@@ -1,4 +1,3 @@
-
 function test() {
 return(helper.GetValue(8)+server_load);
 }

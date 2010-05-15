@@ -13,7 +13,8 @@ Server::Server(quint16 suggested_port, QString server_name, QObject* parent) :
 	srv->registerMethod("Service_FileByName", QVariant::List, QVariant::String);
 	srv->registerMethod("Service_FileByHash", QVariant::List, QVariant::String);
 	srv->registerMethod("Dummy", QVariant::String, QVariant::String);
-	srv->registerMethod("Service_GetAllFilesUnderMgt", QVariant::List);
+	srv->registerMethod("Service_GetAllFilesUnderMgt", QVariant::List, QVariant::String);
+	srv->registerMethod("Service_SaveFile", QVariant::Bool, QVariant::String, QVariant::String);
 
 	// Connect to our processor
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
@@ -65,21 +66,29 @@ void Server::processRequest( int requestId, QString methodName,
 		   "../NameServer/server_log").WriteLogLine(QString("Service"),
 			QString("Application server name (%1), on port (%2) received request name (%3)....").arg(server_name).arg(port).arg(methodName));
 	if (methodName == "Service_FileByName") {
-		ApplicationServiceRequest* request = new ApplicationServiceRequest(srv, parameters, requestId,
+		ApplicationServiceRequest* request = new ApplicationServiceRequest(this, srv, parameters, requestId,
 			ApplicationServiceRequest::request_FileByName);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
 	}
 	else if (methodName == "Service_FileByHash") {
-		ApplicationServiceRequest* request = new ApplicationServiceRequest(srv, parameters, requestId,
+		ApplicationServiceRequest* request = new ApplicationServiceRequest(this, srv, parameters, requestId,
 			ApplicationServiceRequest::request_FileByHash);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
 	}
+	else if (methodName == "Service_SaveFile") {
+		ApplicationServiceRequest* request = new ApplicationServiceRequest(this, srv, parameters, requestId,
+			ApplicationServiceRequest::request_SaveFile);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+
 	else if (methodName == "Service_GetAllFilesUnderMgt") {
-		ApplicationServiceRequest* request = new ApplicationServiceRequest(srv, parameters, requestId,
+		ApplicationServiceRequest* request = new ApplicationServiceRequest(this, srv, parameters, requestId,
 			ApplicationServiceRequest::request_AllFilesList);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);

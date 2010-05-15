@@ -38,7 +38,7 @@ void AppPeriodicProcess::SetupPeriodicProcesses(void) {
 	periodic_timer = new QTimer(this);
 	connect(periodic_timer, SIGNAL(timeout()), this, SLOT(PeriodicProcesses()));
 	int tick = QSettings("../NameServer/nameserver_config", QSettings::IniFormat).value("periodic_tick", 0).toInt();
-	periodic_timer->start(tick); // half a second should be enough for our purposes
+	periodic_timer->start(tick);
 }
 
 bool AppPeriodicProcess::TimeFor(QString event_name) {
@@ -62,9 +62,9 @@ void AppPeriodicProcess::PeriodicProcesses(void) {
 	}
 	if (TimeFor("ReportLoad")) {
 		// Report on load
-		ScriptRunner script("report_load");
-		int load;
-		script.GetResult(load);
+		//ScriptRunner script("report_load");
+		//int load;
+		//script.GetResult(load);
 	}
 	// Report on files under management
 

@@ -1,9 +1,10 @@
+
+#include "server.h"
 #include <QtCore/QCoreApplication>
 #include <QtScript>
 #include "../SharedServices/logger.h"
 #include "nsscriptrunner.h"
 #include "nsscripthelper.h"
-#include "server.h"
 
 NSScriptRunner::NSScriptRunner(QString script_file,
 							   Server* server,

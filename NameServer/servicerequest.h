@@ -21,14 +21,24 @@ private:
 	Server* server;
 	xmlrpc::Client* client;
 	QVariant script_ret_val;
+	QMutex* single_mutex;
 protected:
+	QVariant Client_RequestFileByName(QVariant file_name);
+	QVariant Client_RequestFileByHash(QVariant hash);
 	QVariant Service_RequestFileByName(QVariant file_name);
 	QVariant Service_RequestFileByHash(QVariant hash);
-	QVariant  Service_GetAllFilesUnderMgt(void);
+	QVariant Service_GetAllLocalFilesUnderMgt(void);
+	QVariant Service_GetAllFilesUnderMgt(void);
+	QVariant Service_SaveFile(QVariant file_name, QVariant file_content);
+	void Service_PeriodicProcesses(void);
 	QEventLoop event_loop;
+	QList<xmlrpc::Variant> ConvertToListOfVariants(QVariant var_in);
+	QList<xmlrpc::Variant> ConvertToList(QVariant var_in);
 public:
 	void run();
-	enum RequestType {request_file_byname, request_file_byhash, request_filesundermgt} our_request;
+	enum RequestType {request_file_byname, request_file_byhash, request_local_file_byname, request_local_file_byhash,
+						request_localfilesundermgt, request_allfilesundermgt,
+						request_savefile, request_periodicprocesses} our_request;
 	QThread* GetOurThread(void) {return(our_thread);}
 	ServiceRequest(xmlrpc::Server* srv,
 				   Server* server,
@@ -37,9 +47,9 @@ public:
 				   ServiceRequest::RequestType request);
 	~ServiceRequest();
 	void TransferSocket(void);
+	void DummyTransferSocket(void);
 	void TransferBackSocket(QTcpSocket* socket);
-	QList<xmlrpc::Variant> ConvertToListOfVariants(QVariant var_in);
-	QList<xmlrpc::Variant> ConvertToList(QVariant var_in);
+	void SetSingleMutex(QMutex* mutex) {single_mutex=mutex;}
 protected slots:
 	void processReturnValue(int requestId, QVariant value);
 	void processFault(int requestId, int errorCode, QString errorString);

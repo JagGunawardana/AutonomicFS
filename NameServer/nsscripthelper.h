@@ -7,8 +7,8 @@
 #include <QVariant>
 
 #include "../RPC/xml_rpc/client.h"
+#include "server.h"
 
-class Server;
 
 class NSScriptHelper : public QObject {
 	Q_OBJECT
@@ -25,20 +25,31 @@ private:
 	int requestId;
 protected:
 	QVariant MakeAppCall(const char* call_name, QVariantMap& server, QString* str1 = NULL, QString* str2 = NULL);
+	QVariant MakeRemoteNSCall(QString ServerIP, const char* call_name, QString* str1 = NULL, QString* str2 = NULL);
 public slots:
 	int GetValue(int a); // Test call
+	void Debug(QVariant str);
+	QVariant GetAliveTime(void) {return(this->server->GetAliveTime());}
 	QVariant DummyCall(QVariantMap server, QString dummy_string); // Test call
 	QVariant GetParameter(QString param) {return params[param];}
 	QVariant GetNumberOfParameters(void) {return params.size();}
 	QVariant GetActiveAppServers(void);
 	QVariant GetActiveNameServers(void);
+	QVariant GetAllActiveNameServers(void);
 	QVariant TryGetFileByName(QVariantMap server, QString file_name);
 	QVariant TryGetFileByHash(QVariantMap server, QString file_hash);
-	QVariant GetAllFilesUnderMgt(QVariantMap server);
+	QVariant SaveFile(QVariantMap server, QString file_name, QString file_content);
+	QVariant GetAllLocalFilesUnderMgt(QVariantMap server);
 	QVariant GetIPAddress(void);
+	QVariant GetLocalFileListForServer(QVariant ServerIP);
+	QVariant GetRemoteFileFromServerByName(QVariant ServerIP, QString file_name);
+	QVariant GetRemoteFileFromServerByHash(QVariant ServerIP, QString hash);
 private slots:
 	void processReturnValue( int requestId, QVariant value );
 	void processFault( int requestId,
+					   int errorCode, QString errorString );
+	void processNSReturnValue( int requestId, QVariant value );
+	void processNSFault( int requestId,
 					   int errorCode, QString errorString );
 
 };

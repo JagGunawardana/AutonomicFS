@@ -3,6 +3,8 @@
 
 #include <QObject>
 
+class QVariant;
+
 class ScriptHelper : public QObject {
 	Q_OBJECT
 public:

@@ -19,6 +19,7 @@ public:
 	QVariantMap GetActiveApplicationServers(void);
 	QList<xmlrpc::Variant> GetActiveNameServers(void);
 	QString GetIPAddress(int requestId) {return(srv->GetIPAddress(requestId));}
+	int GetAliveTime(void) {return(life_timer->elapsed());}
 private:
 	QList<int> GetActiveApplicationServerPorts(void);
 	xmlrpc::Server* srv;
@@ -30,6 +31,10 @@ private:
 	QUdpSocket* broadcastListener;
 	int broadcastPort;
 	QTimer* broadcast_timer;
+	QTimer* periodic_timer;
+	int periodic_interval;
+	QTime* life_timer;
+	QMutex periodic_mutex;
 protected:
 	QVariant RegisterAppServer(QVariant server_name, QVariant pid, QVariant port_number, QVariant server_type); // Called by each application server when it starts
 	QVariant Ping(QVariant pid); // Used for keep alive and latency checks
@@ -37,6 +42,7 @@ private slots:
 	void processRequest( int requestId, QString methodName, QList<xmlrpc::Variant> parameters );
 	void processNSBroadcast(void);
 	void SendBroadcast(void);
+	void Periodics(void);
 };
 
 #endif // SERVER_H

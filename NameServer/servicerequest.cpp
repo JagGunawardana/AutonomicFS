@@ -22,12 +22,24 @@ ServiceRequest::ServiceRequest(xmlrpc::Server* srv,
 	this->requestId = requestId;
 	this->server = server;
 	master_thread = QThread::currentThread(); // used to switch back socket ownership at end
-	socket_parent = srv->GetSocketParent(requestId);
+	if (srv!=NULL)
+		socket_parent = srv->GetSocketParent(requestId);
+	else
+		socket_parent = NULL;
 	our_request = request_type;
 	client = NULL;
+	single_mutex = NULL;
 }
 
 ServiceRequest::~ServiceRequest() {
+}
+
+void ServiceRequest::DummyTransferSocket(void) {
+	// use for periodic processes (or whenever there is no client call)
+	if (client != NULL)
+		delete(client);
+	sync_sem.acquire(10); // wait until the other thread has sent it's QThread
+	sync_sem.release(20); // allow the other thread to go and do it's thing
 }
 
 void ServiceRequest::TransferSocket(void) {
@@ -50,25 +62,64 @@ void ServiceRequest::run(void) {
 	our_thread = QThread::currentThread();
 	sync_sem.release(10);
 	sync_sem.acquire(20);
+	// If there is a mutex to control access to this function then check it to see if we can proceed
+	if (single_mutex != NULL) {
+		if (!single_mutex->tryLock()) { // If we can't run then abort
+			sync_sem.release(20); // clean up sempahore
+			return;
+		}
+	}
 	// Do our action
 	QTcpSocket* socket = NULL;
-	if (our_request == request_file_byname) {
+	if (our_request == request_local_file_byname) {
 		QVariant ret_val = Service_RequestFileByName(parameters[0]);
 		QList<xmlrpc::Variant> tmp_var = ConvertToList(ret_val);
 		socket = srv->sendReturnValue(requestId, xmlrpc::Variant(tmp_var));
 	}
-	else if (our_request == request_file_byhash) {
+	else if (our_request == request_local_file_byhash) {
 		QVariant ret_val = Service_RequestFileByHash(parameters[0]);
 		QList<xmlrpc::Variant> tmp_var = ConvertToList(ret_val);
 		socket = srv->sendReturnValue(requestId, xmlrpc::Variant(tmp_var));
 	}
-	else if (our_request == request_filesundermgt) {
+	else if (our_request == request_file_byname) {
+		QVariant ret_val = Client_RequestFileByName(parameters[0]);
+		QList<xmlrpc::Variant> tmp_var = ConvertToList(ret_val);
+		socket = srv->sendReturnValue(requestId, xmlrpc::Variant(tmp_var));
+	}
+	else if (our_request == request_file_byhash) {
+		QVariant ret_val = Client_RequestFileByHash(parameters[0]);
+		QList<xmlrpc::Variant> tmp_var = ConvertToList(ret_val);
+		socket = srv->sendReturnValue(requestId, xmlrpc::Variant(tmp_var));
+	}
+	else if (our_request == request_localfilesundermgt) {
+		QVariant ret_val = Service_GetAllLocalFilesUnderMgt();
+		QList<xmlrpc::Variant> tmp_var = ConvertToListOfVariants(ret_val);
+		socket = srv->sendReturnValue(requestId, tmp_var);
+	}
+	else if (our_request == request_allfilesundermgt) {
 		QVariant ret_val = Service_GetAllFilesUnderMgt();
 		QList<xmlrpc::Variant> tmp_var = ConvertToListOfVariants(ret_val);
 		socket = srv->sendReturnValue(requestId, tmp_var);
 	}
+	else if (our_request == request_savefile) {
+qDebug()<<"&&&&&&&&&&&&&&&&&"<<parameters[1].toByteArray();
+qDebug()<<"&&&&&&&&&&&&&&&&&"<<QByteArray::fromBase64(parameters[1].toByteArray());
+		QVariant ret_val = Service_SaveFile(parameters[0], parameters[1]);
+		xmlrpc::Variant tmp_var = ret_val.toBool();
+		socket = srv->sendReturnValue(requestId, tmp_var);
+	}
+	else if (our_request == request_periodicprocesses) {
+		Service_PeriodicProcesses();
+		socket = NULL;
+	}
+
+	// Next line is required to cleanly send
+	QEventLoop().processEvents(QEventLoop::AllEvents, 200000);
 	// Clean up threads and socket ownership
 	sync_sem.release(20); // clean up sempahore
+	if (single_mutex != NULL) {
+		single_mutex->unlock();
+	}
 	if (socket!=NULL)
 		TransferBackSocket(socket);
 }
@@ -127,7 +178,7 @@ void ServiceRequest::processFault( int requestId, int errorCode, QString errorSt
 	event_loop.exit();
 }
 
-QVariant ServiceRequest::Service_RequestFileByName(QVariant file_name) {
+QVariant ServiceRequest::Client_RequestFileByName(QVariant file_name) {
 	// Find the file and return it back
 	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
 	QMap<QString, QVariant> params;
@@ -138,7 +189,7 @@ QVariant ServiceRequest::Service_RequestFileByName(QVariant file_name) {
 	return(variant);
 }
 
-QVariant ServiceRequest::Service_RequestFileByHash(QVariant hash) {
+QVariant ServiceRequest::Client_RequestFileByHash(QVariant hash) {
 	// Find the file and return it back
 	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
 	QMap<QString, QVariant> params;
@@ -149,6 +200,29 @@ QVariant ServiceRequest::Service_RequestFileByHash(QVariant hash) {
 	return(variant);
 }
 
+QVariant ServiceRequest::Service_RequestFileByName(QVariant file_name) {
+	// Find the file and return it back
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_name")] = file_name;
+	NSScriptRunner script(pro->GetRelativeScriptPath("read_local_file_byname"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant);
+	return(variant);
+}
+
+QVariant ServiceRequest::Service_RequestFileByHash(QVariant hash) {
+	// Find the file and return it back
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_hash")] = hash;
+	NSScriptRunner script(pro->GetRelativeScriptPath("read_local_file_byhash"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant);
+	return(variant);
+}
+
+
 QVariant ServiceRequest::Service_GetAllFilesUnderMgt(void) {
 	// Get the list of files from all servers
 	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
@@ -157,4 +231,36 @@ QVariant ServiceRequest::Service_GetAllFilesUnderMgt(void) {
 	QVariant variant;
 	script.GetResult(variant); // !!!
 	return(variant);
+}
+
+QVariant ServiceRequest::Service_GetAllLocalFilesUnderMgt(void) {
+	// Get the list of files from local app servers
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	NSScriptRunner script(pro->GetRelativeScriptPath("get_all_local_files"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant); // !!!
+	return(variant);
+}
+
+QVariant ServiceRequest::Service_SaveFile(QVariant file_name, QVariant file_content) {
+	// Get the list of files from local app servers
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_name")] = file_name;
+	params[QString("file_content")] = file_content;
+qDebug()<<"******* Content: "<<file_content;
+	NSScriptRunner script(pro->GetRelativeScriptPath("save_file"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant);
+	return(variant);
+}
+
+void ServiceRequest::Service_PeriodicProcesses(void) {
+	// Carry out periodic processes
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	NSScriptRunner script(pro->GetRelativeScriptPath("periodic_processes"), server, params, requestId);
+//	QVariant variant;
+//	script.GetResult(variant);
 }

@@ -23,13 +23,25 @@ Server::Server( quint16 port, QObject *parent )
 	srv->registerMethod( "Ping", QVariant::Bool, QVariant::Int );
 	srv->registerMethod("Service_RequestFileByName", QVariant::List, QVariant::String);
 	srv->registerMethod("Service_RequestFileByHash", QVariant::List, QVariant::String);
-	srv->registerMethod("Service_GetAllFilesUnderMgt",QVariant::List);
+	srv->registerMethod("Service_GetAllLocalFilesUnderMgt",QVariant::List);
+	srv->registerMethod("Service_SaveFile", QVariant::Bool, QVariant::String, QVariant::ByteArray);
+	srv->registerMethod("Client_RequestFileByName", QVariant::List, QVariant::String);
+	srv->registerMethod("Client_RequestFileByHash", QVariant::List, QVariant::String);
+	srv->registerMethod("Client_GetAllLocalFilesUnderMgt",QVariant::List);
+	srv->registerMethod("Client_GetAllFilesUnderMgt",QVariant::List);
 	srv->registerMethod("Client_GetAllNameServers",QVariant::List);
+	srv->registerMethod("Client_SaveFile", QVariant::Bool, QVariant::String, QVariant::ByteArray);
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
 		this, SLOT(processRequest( int, QString, QList<xmlrpc::Variant>)));
 
 	if(! srv->listen( port ) )
-		Logger("Name server", "server_log").WriteLogLine(QString("Registration"), QString("Error with Name server starting on host %1, using port %2....").arg(QHostInfo::localHostName()).arg(port));
+		Logger("Name server", "server_log").WriteLogLine(QString("Registration"),
+			QString("Error with Name server starting on host %1, using port %2....").arg(QHostInfo::localHostName()).arg(port));
+
+	// Our timer
+	life_timer = new QTime();
+	life_timer->start();
+
 	// Setup broadcast stuff
 	// Listener first
 	broadcastListener = new QUdpSocket(this);
@@ -37,12 +49,19 @@ Server::Server( quint16 port, QObject *parent )
 	broadcastListener->bind(broadcastPort, QUdpSocket::ShareAddress);
 	connect(broadcastListener, SIGNAL(readyRead()),
 			this, SLOT(processNSBroadcast()));
-	// Broadcaster second
+	// Broadcaster next
 	// Setup our periodic timer
 	broadcast_timer = new QTimer(this);
 	connect(broadcast_timer , SIGNAL(timeout()), this, SLOT(SendBroadcast()));
 	ns_tick = QSettings("nameserver_config", QSettings::IniFormat).value("broadcast_interval", 0).toInt();
 	broadcast_timer->start(tick);
+
+	// Periodic processes i.e. load calculation, lazy updater, replicator
+	// Setup our periodic timer
+	periodic_timer = new QTimer(this);
+	connect(periodic_timer , SIGNAL(timeout()), this, SLOT(Periodics()));
+	periodic_interval = QSettings("nameserver_config", QSettings::IniFormat).value("periodic_interval", 0).toInt();
+	periodic_timer->start(periodic_interval);
 }
 
 Server::~Server() {
@@ -55,7 +74,21 @@ Server::~Server() {
 		delete(ns);
 	nameserver_map.clear();
 	delete(broadcast_timer);
+	delete(periodic_timer);
 	delete(broadcastListener);
+	delete(life_timer);
+}
+
+void Server::Periodics(void) {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Periodic_process"),
+				QString("Running periodic processes."));
+		QList<xmlrpc::Variant> parameters;
+		ServiceRequest *request = new ServiceRequest(NULL, this, parameters,
+			-1, ServiceRequest::request_periodicprocesses);
+		request->SetSingleMutex(&periodic_mutex);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->DummyTransferSocket();
 }
 
 void Server::SendBroadcast(void) {
@@ -106,11 +139,20 @@ void Server::processRequest( int requestId, QString methodName,
 		QVariant ret_val = Ping(parameters[0]);
 		srv->sendReturnValue( requestId, ret_val.toBool());
 	}
+	else if (methodName == "Client_GetAllFilesUnderMgt") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_allfilesundermgt);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
 	else if (methodName == "Service_RequestFileByName") {
 		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
 				QString("Name server service request name(%2).").arg(methodName));
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
-			requestId, ServiceRequest::request_file_byname);
+			requestId, ServiceRequest::request_local_file_byname);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
@@ -119,16 +161,34 @@ void Server::processRequest( int requestId, QString methodName,
 		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
 				QString("Name server service request name(%2).").arg(methodName));
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_local_file_byhash);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Client_RequestFileByName") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_file_byname);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Client_RequestFileByHash") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
 			requestId, ServiceRequest::request_file_byhash);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
 	}
-	else if (methodName == "Service_GetAllFilesUnderMgt") {
+	else if (methodName == "Service_GetAllLocalFilesUnderMgt" || methodName == "Client_GetAllLocalFilesUnderMgt") {
 		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
 				QString("Name server service request name(%2).").arg(methodName));
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
-			requestId, ServiceRequest::request_filesundermgt);
+			requestId, ServiceRequest::request_localfilesundermgt);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
@@ -140,6 +200,15 @@ void Server::processRequest( int requestId, QString methodName,
 		QString my_ip = GetIPAddress(requestId);
 		others.append(xmlrpc::Variant(my_ip));
 		srv->sendReturnValue( requestId, xmlrpc::Variant(others));
+	}
+	else if (methodName == "Client_SaveFile" || methodName == "Service_SaveFile") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_savefile);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
 	}
 	else {
 		qDebug() << QString("Name server - bad service name given ("+methodName+").");
@@ -186,7 +255,6 @@ QList<int> Server::GetActiveApplicationServerPorts(void) {
 QList<xmlrpc::Variant> Server::GetActiveNameServers(void) {
 	QList<xmlrpc::Variant> our_addresses;
 	foreach(NameServer* ns, nameserver_map) {
-		qDebug()<<"Keep alive gap "<<ns->GetKeepAliveGap();
 		if ((ns->GetKeepAliveGap()) < ns_tick*2)
 			our_addresses.append(xmlrpc::Variant(ns->GetAddress()));
 	}

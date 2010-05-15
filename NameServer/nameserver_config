@@ -1,8 +1,11 @@
-#Name server port
+#Name server port (listens for client requests)
 port=8085
+#Broadcast port - listens for other name servers to announce their presence
 broadcast_port=8081
-#broadcast interval (ms)
+#broadcast interval (ms) for all name servers
 broadcast_interval=1000
+# Interval for calculating load, lazy updater, and replicator
+periodic_interval=3000
 
 #Periodic proceess 
 #Tick interval (ms)
@@ -18,7 +21,7 @@ AppServerPortMax=9100
 
 #Logging
 
-#What to ignore
+#What to ignore i.e. don't log to file or screen
 NoLog="Periodic_process,KeepAlive,Ping"
 #NoLog="KeepAlive,Ping"
 

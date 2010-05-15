@@ -3,17 +3,19 @@
 #include <QSemaphore>
 #include <QTcpSocket>
 
+#include "server.h"
 #include "filemanager.h"
 #include "../SharedServices/logger.h"
 
 #include "../RPC/xml_rpc/variant.h"
 
-ApplicationServiceRequest::ApplicationServiceRequest(xmlrpc::Server* srv,
+ApplicationServiceRequest::ApplicationServiceRequest(Server* server, xmlrpc::Server* srv,
 							   QList<xmlrpc::Variant> parameters,
 							   int requestId,
 							   ApplicationServiceRequest::RequestType request_type) : sync_sem(0)
 {
 	this->srv = srv;
+	this->server = server;
 	this->parameters = parameters;
 	this->requestId = requestId;
 	master_thread = QThread::currentThread(); // used to switch back socket ownership at end
@@ -69,8 +71,13 @@ void ApplicationServiceRequest::run(void) {
 		tmp_var.append(xmlrpc::Variant(new_ba));
 		socket = srv->sendReturnValue( requestId, tmp_var);
 	}
+	else if (our_request == request_SaveFile) {
+		QVariant ret_val = Service_SaveFile(parameters[0], parameters[1]);
+		socket = srv->sendReturnValue( requestId, xmlrpc::Variant(ret_val.toBool()));
+	}
+
 	else if (our_request == request_AllFilesList) {
-		QList<QList<QString> >  all_files = Service_GetAllFilesList();
+		QList<QList<QString> >  all_files = Service_GetAllFilesList(parameters[0]);
 		QList<xmlrpc::Variant> ret_val;
 		for (int i = 0; i < all_files.size(); ++i) {
 			xmlrpc::Variant tmp_var(all_files.at(i));
@@ -102,11 +109,20 @@ QVariant ApplicationServiceRequest::Service_RequestFileByHash(QVariant hash) {
 	return(fm->CheckServeFileByHash(hash.toString()));
 }
 
-QList<QList<QString> > ApplicationServiceRequest::Service_GetAllFilesList(void) {
+QVariant ApplicationServiceRequest::Service_SaveFile(QVariant file_name, QVariant file_content) {
+	Logger("Application server",
+		   "../NameServer/server_log").WriteLogLine(QString("Service"),
+													QString("Received request (SaveFile)...."));
+	FileManager* fm = FileManager::GetFileManager();
+	return(QVariant(fm->SaveFile(file_name.toString(), file_content.toByteArray()) ));
+}
+
+QList<QList<QString> > ApplicationServiceRequest::Service_GetAllFilesList(QVariant IPAddress) {
 	Logger("Application server",
 		   "../NameServer/server_log").WriteLogLine(QString("Service"),
 													QString("Received request (GetAllFilesList)...."));
 	FileManager* fm = FileManager::GetFileManager();
-	return(fm->GetAllFilesList());
+	QString IP_Address_string = IPAddress.toString();
+	return(fm->GetAllFilesList(IP_Address_string));
 }
 
