@@ -12,7 +12,7 @@ public:
 	NSClient( const QString &address, QString server_name, QObject *parent = 0 );
 	~NSClient();
 	void RegisterWithNameServer(int application_port, QString server_type);
-	void Ping(void);
+	void Ping(int application_port, int read_count, int write_count);
 
 private slots:
 	void processFault( int requestId, int errorCode, QString errorString );

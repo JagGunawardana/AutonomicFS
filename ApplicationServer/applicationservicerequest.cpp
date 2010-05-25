@@ -75,7 +75,14 @@ void ApplicationServiceRequest::run(void) {
 		QVariant ret_val = Service_SaveFile(parameters[0], parameters[1]);
 		socket = srv->sendReturnValue( requestId, xmlrpc::Variant(ret_val.toBool()));
 	}
-
+	else if (our_request == request_ForceSaveFile) {
+		QVariant ret_val = Service_SaveFile(parameters[0], parameters[1], true);
+		socket = srv->sendReturnValue( requestId, xmlrpc::Variant(ret_val.toBool()));
+	}
+	else if (our_request == request_DeleteFile) {
+		QVariant ret_val = Service_DeleteFile(parameters[0]);
+		socket = srv->sendReturnValue( requestId, xmlrpc::Variant(ret_val.toBool()));
+	}
 	else if (our_request == request_AllFilesList) {
 		QList<QList<QString> >  all_files = Service_GetAllFilesList(parameters[0]);
 		QList<xmlrpc::Variant> ret_val;
@@ -109,13 +116,22 @@ QVariant ApplicationServiceRequest::Service_RequestFileByHash(QVariant hash) {
 	return(fm->CheckServeFileByHash(hash.toString()));
 }
 
-QVariant ApplicationServiceRequest::Service_SaveFile(QVariant file_name, QVariant file_content) {
+QVariant ApplicationServiceRequest::Service_SaveFile(QVariant file_name, QVariant file_content, bool Force) {
 	Logger("Application server",
 		   "../NameServer/server_log").WriteLogLine(QString("Service"),
 													QString("Received request (SaveFile)...."));
 	FileManager* fm = FileManager::GetFileManager();
-	return(QVariant(fm->SaveFile(file_name.toString(), file_content.toByteArray()) ));
+	return(QVariant(fm->SaveFile(file_name.toString(), file_content.toByteArray(), Force) ));
 }
+
+QVariant ApplicationServiceRequest::Service_DeleteFile(QVariant file_name) {
+	Logger("Application server",
+		   "../NameServer/server_log").WriteLogLine(QString("Service"),
+													QString("Received request (DeleteFile) file: %1....").arg(file_name.toString()));
+	FileManager* fm = FileManager::GetFileManager();
+	return(QVariant(fm->DeleteFile(file_name.toString()) ));
+}
+
 
 QList<QList<QString> > ApplicationServiceRequest::Service_GetAllFilesList(QVariant IPAddress) {
 	Logger("Application server",

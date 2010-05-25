@@ -30,12 +30,31 @@ void NSScriptHelper::Debug(QVariant str) {
 	qDebug()<<str;
 }
 
+void NSScriptHelper::LogMessage(QVariant str) {
+	Logger("Name Server Scripthelper",
+		   "server_log").WriteLogLine(QString("ScriptHelper"),
+			str.toString());
+}
+
+QVariant NSScriptHelper::GetReplicaCount(void) {
+	int replica_count = QSettings("../NameServer/nameserver_config", QSettings::IniFormat).value("replica_count", 2).toInt();
+	return(QVariant(replica_count));
+}
+
 QVariant NSScriptHelper::GetActiveAppServers(void) {
 	return(server->GetActiveApplicationServers());
 }
 
+QVariant NSScriptHelper::GetIdleAppServer(void) {
+	return(server->GetIdleApplicationServer());
+}
+
 QVariant NSScriptHelper::GetActiveNameServers(void) {
 	return(xmlrpc::Variant(server->GetActiveNameServers()));
+}
+
+QVariant NSScriptHelper::GetIdleNameServerFromList(QVariant list) {
+	return(xmlrpc::Variant(server->GetIdleNameServerFromList(list)));
 }
 
 QVariant NSScriptHelper::GetAllActiveNameServers(void) {
@@ -45,6 +64,10 @@ QVariant NSScriptHelper::GetAllActiveNameServers(void) {
 	else
 		Q_ASSERT("Should you be calling this ??");
 	return(xmlrpc::Variant(servers));
+}
+
+QVariant NSScriptHelper::GetLoadOfServer(QVariant IP) {
+	return(xmlrpc::Variant(server->GetLoadOfServer(IP)));
 }
 
 QVariant NSScriptHelper::GetIPAddress(void) {
@@ -126,6 +149,23 @@ QVariant NSScriptHelper::SaveFile(QVariantMap server, QString file_name, QString
 		return(QVariant(false));
 }
 
+QVariant NSScriptHelper::SaveNewFile(QVariantMap server, QString file_name, QString file_content) {
+	// Ask app server to save file if it has it in store
+	QVariant ret = MakeAppCall("Service_ForceSaveFile", server, &file_name, &file_content);
+	if (ret.isValid())
+		return(ret);
+	else
+		return(QVariant(false));
+}
+
+QVariant NSScriptHelper::DeleteFile(QVariantMap server, QString file_name) {
+	QVariant ret = MakeAppCall("Service_DeleteFile", server, &file_name);
+	if (ret.isValid())
+		return(ret);
+	else
+		return(QVariant(false));
+}
+
 QVariant NSScriptHelper::MakeAppCall(const char* call_name, QVariantMap& server, QString* str1, QString* str2) {
 	// Factored out to make an application xml_rpc call
 	client = new xmlrpc::Client(this);
@@ -176,6 +216,14 @@ QVariant NSScriptHelper::GetRemoteFileFromServerByName(QVariant ServerIP, QStrin
 	}
 }
 
+QVariant NSScriptHelper::DeleteRemoteFile(QVariant ServerIP, QString file_name) {
+	QVariant ret = MakeRemoteNSCall(ServerIP.toString(), "Service_DeleteFile", &file_name);
+	if (ret.isValid())
+		return(ret);
+	else
+		return(QVariant(false));
+}
+
 QVariant NSScriptHelper::GetRemoteFileFromServerByHash(QVariant ServerIP, QString hash) {
 	// Ask app server for file (by hash)
 	QVariant ret = MakeRemoteNSCall(ServerIP.toString(), "Service_RequestFileByHash", &hash);
@@ -188,6 +236,36 @@ QVariant NSScriptHelper::GetRemoteFileFromServerByHash(QVariant ServerIP, QStrin
 			dummy.append(QString(""));
 		return(dummy);
 	}
+}
+
+QVariant NSScriptHelper::SaveRemoteFile(QVariant ServerIP, QString file_name, QString file_content, bool Force) {
+	// Save this file on the remote
+	QByteArray content;
+	content.append(file_content);
+	QVariant ret = MakeRemoteNSCall(ServerIP.toString(), "Service_SaveFile", &file_name, &content, Force);
+	if (ret.isValid())
+		return(ret);
+	else
+		return(QVariant(false));
+}
+
+QVariant NSScriptHelper::MakeRemoteNSCall(QString ServerIP, const char* call_name, QString* str1, QByteArray* content, bool force) {
+	// Factored out to make an NS xml_rpc call
+	Logger("Name Server Scripthelper",
+		   "server_log").WriteLogLine(QString("Remote"),
+			QString("(Script) Making remote request: call(%1), server(%2).").arg(call_name).arg(ServerIP));
+	client = new xmlrpc::Client(this);
+	int port_number = QSettings("../NameServer/nameserver_config", QSettings::IniFormat).value("port", 0).toInt();
+	QString address = ServerIP;
+	client->setHost(address, port_number);
+	connect( client, SIGNAL(done( int, QVariant )),
+		this, SLOT(processNSReturnValue( int, QVariant )) );
+	connect( client, SIGNAL(failed( int, int, QString )),
+		this, SLOT(processNSFault( int, int, QString )) );
+	client->request(call_name, *str1, *content, force);
+	QEventLoop().processEvents(QEventLoop::AllEvents, 200000);
+	event_loop.exec();
+	return(script_ret_val);
 }
 
 QVariant NSScriptHelper::MakeRemoteNSCall(QString ServerIP, const char* call_name, QString* str1, QString* str2) {

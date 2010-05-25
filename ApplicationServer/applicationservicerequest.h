@@ -9,7 +9,7 @@ class Server;
 class ApplicationServiceRequest : public QRunnable
 {	
 public:
-	enum RequestType {request_FileByName, request_FileByHash, request_AllFilesList, request_SaveFile} our_request;
+	enum RequestType {request_FileByName, request_FileByHash, request_AllFilesList, request_SaveFile, request_ForceSaveFile, request_DeleteFile} our_request;
 	ApplicationServiceRequest(Server* server,
 					xmlrpc::Server* srv,
 				   QList<xmlrpc::Variant> parameters,
@@ -23,8 +23,9 @@ public:
 protected:
 	QVariant Service_RequestFileByName(QVariant file_name);
 	QVariant Service_RequestFileByHash(QVariant hash);
-	QVariant Service_SaveFile(QVariant file_name, QVariant file_content);
+	QVariant Service_SaveFile(QVariant file_name, QVariant file_content, bool Force=false);
 	QList<QList<QString> > Service_GetAllFilesList(QVariant IPAddress);
+	QVariant Service_DeleteFile(QVariant file_name);
 private:
 	xmlrpc::Server *srv;
 	QList<xmlrpc::Variant> parameters;

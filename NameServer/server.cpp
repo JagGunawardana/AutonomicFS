@@ -20,17 +20,19 @@ Server::Server( quint16 port, QObject *parent )
 	keep_alive_gap = QSettings("nameserver_config", QSettings::IniFormat).value("KeepAlive", 0).toInt();
 	//register our methods
 	srv->registerMethod( "RegisterAppServer", QVariant::Bool, QVariant::String, QVariant::Int, QVariant::Int, QVariant::String );
-	srv->registerMethod( "Ping", QVariant::Bool, QVariant::Int );
+	srv->registerMethod( "Ping", QVariant::Bool, QVariant::List);
 	srv->registerMethod("Service_RequestFileByName", QVariant::List, QVariant::String);
 	srv->registerMethod("Service_RequestFileByHash", QVariant::List, QVariant::String);
 	srv->registerMethod("Service_GetAllLocalFilesUnderMgt",QVariant::List);
-	srv->registerMethod("Service_SaveFile", QVariant::Bool, QVariant::String, QVariant::ByteArray);
+	srv->registerMethod("Service_SaveFile", QVariant::Bool, QVariant::String, QVariant::ByteArray, QVariant::Bool);
+	srv->registerMethod("Service_DeleteFile", QVariant::Bool, QVariant::String);
 	srv->registerMethod("Client_RequestFileByName", QVariant::List, QVariant::String);
 	srv->registerMethod("Client_RequestFileByHash", QVariant::List, QVariant::String);
 	srv->registerMethod("Client_GetAllLocalFilesUnderMgt",QVariant::List);
 	srv->registerMethod("Client_GetAllFilesUnderMgt",QVariant::List);
 	srv->registerMethod("Client_GetAllNameServers",QVariant::List);
 	srv->registerMethod("Client_SaveFile", QVariant::Bool, QVariant::String, QVariant::ByteArray);
+	srv->registerMethod("Client_DeleteFile", QVariant::Bool, QVariant::String);
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
 		this, SLOT(processRequest( int, QString, QList<xmlrpc::Variant>)));
 
@@ -95,6 +97,8 @@ void Server::SendBroadcast(void) {
 	QUdpSocket udpSocket(this);
 	QByteArray datagram = "";
 	datagram.append(QHostInfo::localHostName());
+	double our_load = GetNSLoad();
+	datagram.append(QString(":%1").arg(our_load));
 	udpSocket.writeDatagram(datagram.data(), datagram.size(),
 							 QHostAddress::Broadcast, broadcastPort);
 	Logger("Name Server", "server_log").WriteLogLine(QString("Periodic_process"),
@@ -108,15 +112,22 @@ void Server::processNSBroadcast(void) {
 		QHostAddress host;
 		quint16 port;
 		broadcastListener->readDatagram(datagram.data(), datagram.size(), &host, &port);
-		if (QString(datagram.data())!=QString(QHostInfo::localHostName())) {
+		QString bc(datagram.data());
+		QStringList sl = bc.split(":");
+		QString remote_host = sl.at(0);
+		QString load_str = sl.at(1);
+		double load = load_str.toDouble();
+		if (remote_host!=QString(QHostInfo::localHostName())) {
 			// Process broadcast address, if not received before then register, otherwise process as keep alive message
 			if (nameserver_map.contains(host.toString())) {
 				nameserver_map[host.toString()]->KeepAliveMessage();
+				nameserver_map[host.toString()]->SetLoad(load);
 				Logger("Name Server", "server_log").WriteLogLine(QString("KeepAlive"),
 						QString("Received name server broadcast from host %1").arg(host.toString()));
 			}
 			else {
 				nameserver_map[host.toString()] = new NameServer(host.toString(), port);
+				nameserver_map[host.toString()]->SetLoad(load);
 				Logger("Name Server", "server_log").WriteLogLine(QString("Registration"),
 						QString("Name server registration Address(%1), on port(%2).").arg(host.toString()).arg(port));
 			}
@@ -201,11 +212,38 @@ void Server::processRequest( int requestId, QString methodName,
 		others.append(xmlrpc::Variant(my_ip));
 		srv->sendReturnValue( requestId, xmlrpc::Variant(others));
 	}
-	else if (methodName == "Client_SaveFile" || methodName == "Service_SaveFile") {
+	else if (methodName == "Service_SaveFile") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_savelocalfile);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Client_SaveFile") {
 		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
 				QString("Name server service request name(%2).").arg(methodName));
 		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
 			requestId, ServiceRequest::request_savefile);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Client_DeleteFile") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_deletefile);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Service_DeleteFile") {
+		Logger("Name Server", "server_log").WriteLogLine(QString("Service"),
+				QString("Name server service request name(%2).").arg(methodName));
+		ServiceRequest *request = new ServiceRequest(srv, this, parameters,
+			requestId, ServiceRequest::request_deletelocalfile);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
@@ -227,15 +265,24 @@ QVariant Server::RegisterAppServer(QVariant server_name,
 	return(QVariant(true));
 }
 
-QVariant Server::Ping(QVariant pid) {
+QVariant Server::Ping(QVariant params) {
+	QList<QVariant> list = params.toList();
+	QVariant pid = list.at(0);
+	QVariant application_port = list.at(1);
+	QVariant read_count = list.at(2);
+	QVariant write_count = list.at(3);
+	QVariant server_name = list.at(4);
 // Called periodically by each application server
 	if (!appserver_map.contains(pid.toInt())) {
 		Logger("Name server", "server_log").WriteLogLine(QString("KeepAlive"),
 				QString("Keep alive message from pid(%1), no registered server matches.").arg(pid.toInt()) );
-		return(QVariant(false));
+		// Try to register
+		RegisterAppServer(server_name, pid, application_port, QVariant(QString("NEUTRAL")));
 	}
 	ApplicationServer* app = appserver_map[pid.toInt()];
 	int gap = app->KeepAliveMessage();
+	app->SetReadCount(read_count.toInt());
+	app->SetWriteCount(write_count.toInt());
 	Logger("Name server", "server_log").WriteLogLine(QString("KeepAlive"),
 			QString("Keep alive message from pid(%1), name(%2), keep alive gap(%3).").arg(app->GetPid()).arg(app->GetServerName()).arg(gap));
 	return(QVariant(true));
@@ -252,6 +299,35 @@ QList<int> Server::GetActiveApplicationServerPorts(void) {
 	return(list);
 }
 
+double Server::GetLoadOfServer(QVariant IP) {
+	QString ip_address = IP.toString();
+	if (ip_address == "localhost" || ip_address == "127.0.0.1") {
+		return(GetNSLoad());
+	}
+	if (nameserver_map.contains(ip_address)) {
+		return(nameserver_map[ip_address]->GetLoad());
+	}
+	else
+		return(-1.0);
+}
+
+QString Server::GetIdleNameServerFromList(QVariant list) {
+	QVariantList ns_list = list.toList();
+	if (ns_list.size()==0)
+		return(QString(""));
+	double load = -1;
+	int j = 0;
+	for(int i=0;i<ns_list.size();i++) {
+		NameServer* ns = nameserver_map[ns_list.at(i).toString()];
+		double current_load = ns->GetLoad();
+		if (load<0 || current_load<load) {
+			j = i;
+			load = current_load;
+		}
+	}
+	return(ns_list.at(j).toString());
+}
+
 QList<xmlrpc::Variant> Server::GetActiveNameServers(void) {
 	QList<xmlrpc::Variant> our_addresses;
 	foreach(NameServer* ns, nameserver_map) {
@@ -259,6 +335,40 @@ QList<xmlrpc::Variant> Server::GetActiveNameServers(void) {
 			our_addresses.append(xmlrpc::Variant(ns->GetAddress()));
 	}
 	return(our_addresses);
+}
+
+double Server::GetNSLoad(void) {
+	// Get the average load for all our application servers
+	double total_load = 0.0;
+	int count = 0;
+	foreach(ApplicationServer* app, appserver_map) {
+		if (app->GetKeepAliveGap() < tick*keep_alive_gap*2) { // Is this one still alive
+			count++;
+			total_load += app->GetLoadRate();
+		}
+	}
+	return(total_load/count);
+}
+
+QVariant Server::GetIdleApplicationServer(void) {
+	QVariantMap app_map;
+	double app_load = -1;
+	foreach(ApplicationServer* app, appserver_map) {
+		if (app->GetKeepAliveGap() < tick*keep_alive_gap*2) { // Is this one still alive
+			double current_load = app->GetLoadRate();
+			if (app_load<0 || current_load < app_load) {
+				app_load = current_load;
+				app_map.clear();
+				app_map[QString("success")] = QVariant(true);
+				app_map[QString("port")] = QVariant(app->GetPortNumber());
+				app_map[QString("name")]= QVariant(app->GetServerName());
+				app_map[QString("gap")]=QVariant(app->GetKeepAliveGap());
+			}
+		}
+	}
+	if (!app_map.contains(QString("name")))
+		app_map[QString("success")] = QVariant(false);
+	return(app_map);
 }
 
 QVariantMap Server::GetActiveApplicationServers(void) {

@@ -19,7 +19,9 @@ public:
 	QVariant CheckServeFileByName(QString file_name);
 	QVariant CheckServeFileByHash(QString hash);
 	QList<QList<QString> > GetAllFilesList(QString IPAddress);
-	bool SaveFile(QString file_name, QByteArray file_content);
+	bool SaveFile(QString file_name, QByteArray file_content, bool Force);
+	void GetLoad(int& read_load, int& write_load);
+	QVariant DeleteFile(QString file_name);
 protected:
 	void run(void);
 	QString GenerateHash(QString path_to_file);
@@ -34,6 +36,7 @@ protected:
 private:
 	FileManager(QString server_name, QString file_store, int max_size = 0);
 	void ReScanFileByName(QFile& file, QString file_name);
+	void ScanNewFileByName(QFile& file, QString file_name);
 	static FileManager* ptr_self;
 	QString server_name;
 	QString file_store;

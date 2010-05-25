@@ -350,22 +350,74 @@ QString FileManager::GetFileNameFromHash(QString hash) {
 	return(stmt1.object().toString()); // return the file name
 }
 
-bool FileManager::SaveFile(QString file_name, QByteArray file_content) {
-	if (!CheckFileInStoreByName(file_name))
-		return(false);
-qDebug()<<file_content;
+bool FileManager::SaveFile(QString file_name, QByteArray file_content, bool Force) {
+	if (!Force) {
+		if (!CheckFileInStoreByName(file_name))
+			return(false);
+	}
 	QByteArray file_to_save = QByteArray::fromBase64(file_content);
-qDebug()<<file_to_save;
-		QFile file(our_dir->absoluteFilePath(file_name));
-	if (!file.exists()) // shouldn't happen
-		return(false);
-	file.open(QIODevice::WriteOnly);
-	file.write(file_to_save);
-	IncWriteCount(file_name);
-	// Deal with rest of record
-	ReScanFileByName(file, file_name);
-	file.close();
+	QFile file(our_dir->absoluteFilePath(file_name));
+	if (Force) {
+		file.open(QIODevice::WriteOnly);
+		file.write(file_to_save);
+		file.close();
+		ScanNewFileByName(file, file_name);
+	}
+	else {
+		if (!file.exists()) // shouldn't happen
+				return(false);
+		file.open(QIODevice::WriteOnly);
+		file.write(file_to_save);
+		file.close();
+		IncWriteCount(file_name);
+		// Deal with rest of record
+		ReScanFileByName(file, file_name);
+	}
 	return(true);
+}
+
+void FileManager::GetLoad(int& read_load, int& write_load) {
+	// Get the total read load and write load
+	Soprano::StatementIterator it = rdfmod->listStatements(Soprano::Node(),
+														   predicate_hasreadcount,
+														   Soprano::Node());
+	read_load = write_load = 0;
+	while(it.next()) {
+		Soprano::Statement stmt = *it;
+		read_load += stmt.object().literal().toInt();
+	}
+	it.close();
+	it = rdfmod->listStatements(Soprano::Node(),
+		predicate_haswritecount,
+		Soprano::Node());
+	while(it.next()) {
+		Soprano::Statement stmt = *it;
+		write_load += stmt.object().literal().toInt();
+	}
+	it.close();
+}
+
+void FileManager::ScanNewFileByName(QFile& file, QString file_name) {
+	QString identifier = QString("uri:filestore:%1").arg(file_name);
+	QFileInfo fileInfo(file);
+	rdfmod->addStatement(QUrl(identifier),
+					 predicate_hasname,
+					 Soprano::LiteralValue(fileInfo.fileName()));
+	rdfmod->addStatement(QUrl(identifier),
+					 predicate_hassize,
+					 Soprano::LiteralValue(fileInfo.size()));
+	rdfmod->addStatement(QUrl(identifier),
+					 predicate_hashash,
+					 Soprano::LiteralValue(GenerateHash(fileInfo.absoluteFilePath())));
+	rdfmod->addStatement(QUrl(identifier),
+					 predicate_hasreadcount,
+					 Soprano::LiteralValue(0));
+	rdfmod->addStatement(QUrl(identifier),
+					 predicate_haswritecount,
+					 Soprano::LiteralValue(0));
+	rdfmod->addStatement(QUrl(identifier),
+					 predicate_hasdatestamp,
+					 Soprano::LiteralValue(fileInfo.lastModified()));
 }
 
 void FileManager::ReScanFileByName(QFile& file, QString file_name) {
@@ -415,6 +467,30 @@ void FileManager::ReScanFileByName(QFile& file, QString file_name) {
 						 predicate_hasdatestamp,
 						 Soprano::LiteralValue(fi.lastModified()));
 	critical_section.unlock();
+}
+
+QVariant FileManager::DeleteFile(QString file_name) {
+	if (!CheckFileInStoreByName(file_name))
+		return(false);
+	QFile file(our_dir->absoluteFilePath(file_name));
+	Soprano::StatementIterator it = rdfmod->listStatements(Soprano::Node(),
+														   predicate_hasname,
+														   Soprano::LiteralValue(file_name));
+	it.next();
+	Soprano::Statement stmt = *it;
+	Soprano::Node subject = stmt.subject();
+	it.close();
+	while(true) {
+		it = rdfmod->listStatements(subject,
+			Soprano::Node(),
+			Soprano::Node());
+		if (!it.next())
+			break;
+		Soprano::Statement statement = *it;
+		it.close();
+		rdfmod->removeStatement(statement);
+	}
+	return(QVariant(file.remove()));
 }
 
 QList<QList<QString> > FileManager::GetAllFilesList(QString IPAddress) {

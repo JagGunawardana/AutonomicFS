@@ -17,7 +17,11 @@ public:
 	Server( quint16 port, QObject *parent = 0 );
 	~Server();
 	QVariantMap GetActiveApplicationServers(void);
+	QVariant GetIdleApplicationServer(void);
+	double GetNSLoad(void);
 	QList<xmlrpc::Variant> GetActiveNameServers(void);
+	QString GetIdleNameServerFromList(QVariant list);
+	double GetLoadOfServer(QVariant IP);
 	QString GetIPAddress(int requestId) {return(srv->GetIPAddress(requestId));}
 	int GetAliveTime(void) {return(life_timer->elapsed());}
 private:
@@ -37,7 +41,7 @@ private:
 	QMutex periodic_mutex;
 protected:
 	QVariant RegisterAppServer(QVariant server_name, QVariant pid, QVariant port_number, QVariant server_type); // Called by each application server when it starts
-	QVariant Ping(QVariant pid); // Used for keep alive and latency checks
+	QVariant Ping(QVariant params);
 private slots:
 	void processRequest( int requestId, QString methodName, QList<xmlrpc::Variant> parameters );
 	void processNSBroadcast(void);

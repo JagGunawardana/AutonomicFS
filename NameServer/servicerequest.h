@@ -29,7 +29,10 @@ protected:
 	QVariant Service_RequestFileByHash(QVariant hash);
 	QVariant Service_GetAllLocalFilesUnderMgt(void);
 	QVariant Service_GetAllFilesUnderMgt(void);
-	QVariant Service_SaveFile(QVariant file_name, QVariant file_content);
+	QVariant Service_DeleteLocalFile(QVariant file_name);
+	QVariant Client_DeleteFile(QVariant file_name);
+	QVariant Client_SaveFile(QVariant file_name, QVariant file_content);
+	QVariant Service_SaveLocalFile(QVariant file_name, QVariant file_content, QVariant force_new);
 	void Service_PeriodicProcesses(void);
 	QEventLoop event_loop;
 	QList<xmlrpc::Variant> ConvertToListOfVariants(QVariant var_in);
@@ -38,7 +41,8 @@ public:
 	void run();
 	enum RequestType {request_file_byname, request_file_byhash, request_local_file_byname, request_local_file_byhash,
 						request_localfilesundermgt, request_allfilesundermgt,
-						request_savefile, request_periodicprocesses} our_request;
+						request_savefile, request_savelocalfile, request_periodicprocesses,
+						request_deletefile, request_deletelocalfile} our_request;
 	QThread* GetOurThread(void) {return(our_thread);}
 	ServiceRequest(xmlrpc::Server* srv,
 				   Server* server,

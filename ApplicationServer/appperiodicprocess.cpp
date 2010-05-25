@@ -7,6 +7,7 @@
 #include "nsclient.h"
 #include "../SharedServices/logger.h"
 #include "scriptrunner.h"
+#include "filemanager.h"
 
 AppPeriodicProcess::AppPeriodicProcess(QString our_server_name, int server_port,
 	QObject* parent) : QThread(parent) {
@@ -57,8 +58,11 @@ void AppPeriodicProcess::PeriodicProcesses(void) {
 	tick_count++;
 	if (TimeFor("KeepAlive")) {
 		// Keep alive message to name server
+		int read_count, write_count;
+		FileManager* fm = FileManager::GetFileManager();
+		fm->GetLoad(read_count, write_count);
 		if (ns_client!=NULL)
-			ns_client->Ping();
+			ns_client->Ping(port, read_count, write_count);
 	}
 	if (TimeFor("ReportLoad")) {
 		// Report on load

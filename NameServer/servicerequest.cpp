@@ -66,6 +66,7 @@ void ServiceRequest::run(void) {
 	if (single_mutex != NULL) {
 		if (!single_mutex->tryLock()) { // If we can't run then abort
 			sync_sem.release(20); // clean up sempahore
+			qDebug()<<"Tried and failed to lock Mutex.........";
 			return;
 		}
 	}
@@ -102,9 +103,22 @@ void ServiceRequest::run(void) {
 		socket = srv->sendReturnValue(requestId, tmp_var);
 	}
 	else if (our_request == request_savefile) {
-qDebug()<<"&&&&&&&&&&&&&&&&&"<<parameters[1].toByteArray();
-qDebug()<<"&&&&&&&&&&&&&&&&&"<<QByteArray::fromBase64(parameters[1].toByteArray());
-		QVariant ret_val = Service_SaveFile(parameters[0], parameters[1]);
+		QVariant ret_val = Client_SaveFile(parameters[0], parameters[1]);
+		xmlrpc::Variant tmp_var = ret_val.toBool();
+		socket = srv->sendReturnValue(requestId, tmp_var);
+	}
+	else if (our_request == request_savelocalfile) {
+		QVariant ret_val = Service_SaveLocalFile(parameters[0], parameters[1], parameters[2]);
+		xmlrpc::Variant tmp_var = ret_val.toBool();
+		socket = srv->sendReturnValue(requestId, tmp_var);
+	}
+	else if (our_request == request_deletelocalfile) {
+		QVariant ret_val = Service_DeleteLocalFile(parameters[0]);
+		xmlrpc::Variant tmp_var = ret_val.toBool();
+		socket = srv->sendReturnValue(requestId, tmp_var);
+	}
+	else if (our_request == request_deletefile) {
+		QVariant ret_val = Client_DeleteFile(parameters[0]);
 		xmlrpc::Variant tmp_var = ret_val.toBool();
 		socket = srv->sendReturnValue(requestId, tmp_var);
 	}
@@ -222,6 +236,26 @@ QVariant ServiceRequest::Service_RequestFileByHash(QVariant hash) {
 	return(variant);
 }
 
+QVariant ServiceRequest::Service_DeleteLocalFile(QVariant file_name) {
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_name")] = file_name;
+	NSScriptRunner script(pro->GetRelativeScriptPath("delete_local_file"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant); // !!!
+	return(variant);
+}
+
+QVariant ServiceRequest::Client_DeleteFile(QVariant file_name) {
+	// Get the list of files from all servers
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_name")] = file_name;
+	NSScriptRunner script(pro->GetRelativeScriptPath("delete_file"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant); // !!!
+	return(variant);
+}
 
 QVariant ServiceRequest::Service_GetAllFilesUnderMgt(void) {
 	// Get the list of files from all servers
@@ -243,14 +277,26 @@ QVariant ServiceRequest::Service_GetAllLocalFilesUnderMgt(void) {
 	return(variant);
 }
 
-QVariant ServiceRequest::Service_SaveFile(QVariant file_name, QVariant file_content) {
+QVariant ServiceRequest::Client_SaveFile(QVariant file_name, QVariant file_content) {
 	// Get the list of files from local app servers
 	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
 	QMap<QString, QVariant> params;
 	params[QString("file_name")] = file_name;
 	params[QString("file_content")] = file_content;
-qDebug()<<"******* Content: "<<file_content;
 	NSScriptRunner script(pro->GetRelativeScriptPath("save_file"), server, params, requestId);
+	QVariant variant;
+	script.GetResult(variant);
+	return(variant);
+}
+
+QVariant ServiceRequest::Service_SaveLocalFile(QVariant file_name, QVariant file_content, QVariant force_new) {
+	// Get the list of files from local app servers
+	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
+	QMap<QString, QVariant> params;
+	params[QString("file_name")] = file_name;
+	params[QString("file_content")] = file_content;
+	params[QString("force_new")] = force_new;
+	NSScriptRunner script(pro->GetRelativeScriptPath("save_local_file"), server, params, requestId);
 	QVariant variant;
 	script.GetResult(variant);
 	return(variant);
@@ -261,6 +307,6 @@ void ServiceRequest::Service_PeriodicProcesses(void) {
 	ProfileMgr* pro = ProfileMgr::GetProfileManager(QDir("scripts").absolutePath());
 	QMap<QString, QVariant> params;
 	NSScriptRunner script(pro->GetRelativeScriptPath("periodic_processes"), server, params, requestId);
-//	QVariant variant;
-//	script.GetResult(variant);
+	QVariant variant;
+	script.GetResult(variant);
 }

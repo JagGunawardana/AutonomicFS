@@ -1,6 +1,7 @@
 #include "nsclient.h"
 #include "../RPC/xml_rpc/client.h"
 #include "../SharedServices/logger.h"
+#include "filemanager.h"
 
 #include <QtCore/QCoreApplication>
 #include <QVariantList>
@@ -38,10 +39,16 @@ void NSClient::RegisterWithNameServer(int application_port, QString server_type)
 			QString("Registered successfully with name server: application name (%1), port (%2)").arg(server_name).arg(port));
 }
 
-void NSClient::Ping(void) {
+void NSClient::Ping(int application_port, int read_count, int write_count) {
 	int our_pid = QCoreApplication::applicationPid();
+	QList<xmlrpc::Variant> list;
+	list.append(xmlrpc::Variant(our_pid));
+	list.append(xmlrpc::Variant(application_port));
+	list.append(xmlrpc::Variant(read_count));
+	list.append(xmlrpc::Variant(write_count));
+	list.append(xmlrpc::Variant(server_name));
 	client->request( "Ping",
-		our_pid);
+		list);
 	Logger("Application Server NSClient",
 		   "../NameServer/server_log").WriteLogLine(QString("Ping"),
 			QString("Sending ping from application server(%1), pid(%2).").arg(server_name).arg(our_pid));

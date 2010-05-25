@@ -15,6 +15,8 @@ Server::Server(quint16 suggested_port, QString server_name, QObject* parent) :
 	srv->registerMethod("Dummy", QVariant::String, QVariant::String);
 	srv->registerMethod("Service_GetAllFilesUnderMgt", QVariant::List, QVariant::String);
 	srv->registerMethod("Service_SaveFile", QVariant::Bool, QVariant::String, QVariant::String);
+	srv->registerMethod("Service_ForceSaveFile", QVariant::Bool, QVariant::String, QVariant::String);
+	srv->registerMethod("Service_DeleteFile", QVariant::Bool, QVariant::String);
 
 	// Connect to our processor
 	connect(srv, SIGNAL(incomingRequest( int, QString, QList<xmlrpc::Variant>)),
@@ -86,10 +88,23 @@ void Server::processRequest( int requestId, QString methodName,
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();
 	}
-
+	else if (methodName == "Service_ForceSaveFile") {
+		ApplicationServiceRequest* request = new ApplicationServiceRequest(this, srv, parameters, requestId,
+			ApplicationServiceRequest::request_ForceSaveFile);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
 	else if (methodName == "Service_GetAllFilesUnderMgt") {
 		ApplicationServiceRequest* request = new ApplicationServiceRequest(this, srv, parameters, requestId,
 			ApplicationServiceRequest::request_AllFilesList);
+		request->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(request);
+		request->TransferSocket();
+	}
+	else if (methodName == "Service_DeleteFile") {
+		ApplicationServiceRequest* request = new ApplicationServiceRequest(this, srv, parameters, requestId,
+			ApplicationServiceRequest::request_DeleteFile);
 		request->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(request);
 		request->TransferSocket();

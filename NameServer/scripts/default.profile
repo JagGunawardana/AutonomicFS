@@ -5,4 +5,7 @@ read_local_file_byhash=default_read_local_file_byhash.js
 get_all_files=default_get_all_files.js
 get_all_local_files=default_get_all_local_files.js
 save_file=default_save_file.js
+save_local_file=default_save_local_file.js
 periodic_processes=default_run_periodic.js
+delete_file=default_delete_file.js
+delete_local_file=default_delete_local_file.js
